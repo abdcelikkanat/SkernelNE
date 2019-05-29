@@ -1,0 +1,7 @@
+*.o
+*.edgelist
+*.embedding
+*.corpus
+./walks/*
+.idea/*
+cmake-build-debug
