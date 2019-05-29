@@ -6,10 +6,10 @@ CC=g++
 CFLAGS=-c -Wall -std=c++11 -I.
 
 .PHONY: all
-all: graphkernelemb
+all: kernelNodeEmb
 
-graphkernelemb: main.o Graph.o Node.o Model.o Unigram.o Vocabulary.o
-	$(CC) ${build}/main.o ${build}/Graph.o ${build}/Node.o ${build}/Model.o ${build}/Unigram.o ${build}/Vocabulary.o -o graphkernelemb
+kernelNodeEmb: main.o Graph.o Node.o Model.o Unigram.o Vocabulary.o
+	$(CC) ${build}/main.o ${build}/Graph.o ${build}/Node.o ${build}/Model.o ${build}/Unigram.o ${build}/Vocabulary.o -o kernelNodeEmb
 
 main.o: main.cpp
 	$(CC) $(CFLAGS) main.cpp -o ${build}/main.o
@@ -31,6 +31,6 @@ Vocabulary.o: ${src}/Vocabulary.cpp
 
 .PHONY: clean
 clean:
-	rm -r ./build/*.o ./graphkernelemb
+	rm -r ./build/*.o ./kernelNodeEmb
 
 $(shell   mkdir -p $(build))

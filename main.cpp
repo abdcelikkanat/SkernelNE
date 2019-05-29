@@ -47,7 +47,7 @@ int main(int argc, char** argv) {
 
     } else {
         format = "\nUsage: \n";
-        format += "\t./kernel input_file.corpus output_file.embedding method_name[gaussian] extra_param[Default: 1.0]\n";
+        format += "\t./kernelNodeEmb input_file.corpus output_file.embedding method_name[gaussian] extra_param[Default: 1.0]\n";
         format +="\nOptional parameters:\n";
         format += "\tStarting alpha [Default: 0.025]\n\tMinimum alpha [Default: 0.0001]\n\tDecay rate: [Default: 1.0]\n";
         format += "\tDimension size [Default: 128]\n\tNegative sample size [Default: 5]\n\tWindow size [Default: 10]\n";

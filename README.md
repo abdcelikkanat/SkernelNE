@@ -1,1 +1,1 @@
-#### GraphKernelEmb
+#### KernelNodeEmb
