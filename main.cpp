@@ -59,6 +59,8 @@ int main(int argc, char** argv) {
     cout << "Input file: " << input_path.str() << endl;
     cout << "Output file: " << embedding_file.str() << endl;
     cout << "Method name: " << method_name.str() << endl;
+    if(method_name.compare("gaussian") == 0)
+        cout << "Variance: " << optionalParams[0] << endl;
 
 
     Model model(input_path.str(), method_name.str(), optionalParams, starting_alpha, min_alpha, decay_rate, dim, negative_sample_size, window_size, num_iters);

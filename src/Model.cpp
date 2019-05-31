@@ -65,7 +65,7 @@ void Model::gaussian_kernel(double alpha, vector <double> labels, int centerId, 
 
     double *neule;
     double *z, *g, eta, *diff;
-    double var = 1.0; // Default value
+    double var = optionalParams[0];
 
     neule = new double[dim_size];
     diff = new double[dim_size];
