@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
     cout << "Input file: " << input_path.str() << endl;
     cout << "Output file: " << embedding_file.str() << endl;
     cout << "Method name: " << method_name.str() << endl;
-    if(method_name.compare("gaussian") == 0)
+    if(method_name.str().compare("gaussian") == 0)
         cout << "Variance: " << optionalParams[0] << endl;
 
 
