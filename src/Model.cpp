@@ -117,6 +117,63 @@ void Model::gaussian_kernel(double alpha, vector <double> labels, int centerId, 
 
 
 
+void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+
+    double *neule;
+    double *z, *g, eta, *diff;
+    double alpha_p = optionalParams[0];
+    double beta_p = optionalParams[1];
+    double temp1, temp2;
+
+    neule = new double[dim_size];
+    diff = new double[dim_size];
+    z = new double[dim_size];
+    g = new double[dim_size];
+
+    for (int d = 0; d < dim_size; d++) {
+        neule[d] = 0.0;
+        diff[d] = 0.0;
+    }
+
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        for (int d = 0; d < dim_size; d++)
+            diff[d] = emb1[contextIds[i]][d] - emb0[centerId][d];
+
+        eta = 0.0;
+        for (int d = 0; d < dim_size; d++)
+            eta += pow(diff[d], 2.0);
+
+        if(labels[i] > 0) { // beta^{-alpha}
+            for (int d = 0; d < dim_size; d++)
+                z[d] = -alpha_p * ( 2.0*diff[d] / (beta_p + eta) );
+        } else {
+            temp1 = (beta_p + eta);
+            temp2 = alpha_p * pow(temp1, -alpha_p-1.0) / ( pow(beta_p, -alpha_p) - pow(temp1, -alpha_p) );
+            for (int d = 0; d < dim_size; d++)
+                z[d] = 2.0*diff[d] * temp2;
+        }
+
+        for (int d = 0; d < dim_size; d++)
+            g[d] = alpha * z[d];
+
+        for (int d = 0; d < dim_size; d++) {
+            neule[d] += -g[d];
+        }
+
+        for (int d = 0; d < dim_size; d++)
+            emb1[contextIds[i]][d] += g[d];
+    }
+    for (int d = 0; d < dim_size; d++)
+        emb0[centerId][d] += neule[d];
+
+
+    delete[] neule;
+    delete [] diff;
+    delete [] z;
+    delete [] g;
+}
 
 
 
@@ -213,6 +270,11 @@ void Model::run() {
                             if(method_name.compare("gaussian") == 0) {
 
                                 gaussian_kernel(alpha, x, centerId, contextIds);
+
+                            } else if(method_name.compare("inf_poly") == 0) {
+
+                                x[0] = pow(optionalParams[1], -optionalParams[0]);
+                                inf_poly_kernel(alpha, x, centerId, contextIds);
 
                             } else if(method_name.compare("deneme") == 0) {
                                 //cout << "method2" << endl;

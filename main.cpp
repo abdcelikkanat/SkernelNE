@@ -27,9 +27,10 @@ int main(int argc, char** argv) {
         embedding_file << argv[2];
         method_name << argv[3];
 
-        if(argc >= 5)
+        if(argc >= 5) {
             optionalParams[0] = stod(argv[4]);
-
+            optionalParams[1] = 1.0; // beta FIX THIS LINE
+        }
         if(argc >= 6)
             starting_alpha = stod(argv[5]);
         if(argc >= 7)
@@ -61,6 +62,9 @@ int main(int argc, char** argv) {
     cout << "Method name: " << method_name.str() << endl;
     if(method_name.str().compare("gaussian") == 0)
         cout << "Variance: " << optionalParams[0] << endl;
+
+    if(method_name.str().compare("inf_poly") == 0)
+        cout << "Alpha: " << optionalParams[0] << " Beta: " << optionalParams[1] << endl;
 
 
     Model model(input_path.str(), method_name.str(), optionalParams, starting_alpha, min_alpha, decay_rate, dim, negative_sample_size, window_size, num_iters);
