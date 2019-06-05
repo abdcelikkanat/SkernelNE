@@ -29,7 +29,8 @@ int main(int argc, char** argv) {
 
         if(argc >= 5) {
             optionalParams[0] = stod(argv[4]);
-            optionalParams[1] = 1.0; // beta FIX THIS LINE
+            optionalParams.push_back(1.0);
+            optionalParams[1] = 0.1; // beta FIX THIS LINE
         }
         if(argc >= 6)
             starting_alpha = stod(argv[5]);
@@ -62,6 +63,9 @@ int main(int argc, char** argv) {
     cout << "Method name: " << method_name.str() << endl;
     if(method_name.str().compare("gaussian") == 0)
         cout << "Variance: " << optionalParams[0] << endl;
+
+    if(method_name.str().compare("exponential") == 0)
+        cout << "Exponential kernel" << endl;
 
     if(method_name.str().compare("inf_poly") == 0)
         cout << "Alpha: " << optionalParams[0] << " Beta: " << optionalParams[1] << endl;

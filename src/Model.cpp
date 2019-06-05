@@ -176,23 +176,81 @@ void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, 
 }
 
 
+void Model::exponential(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+
+    double *neule;
+    double *z, *g, eta, *diff;
+    double dot=0.0;
+
+    neule = new double[dim_size];
+    diff = new double[dim_size];
+    z = new double[dim_size];
+    g = new double[dim_size];
+
+    for (int d = 0; d < dim_size; d++) {
+        neule[d] = 0.0;
+        diff[d] = 0.0;
+    }
+
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        dot = 0.0;
+        for (int d = 0; d < dim_size; d++)
+            dot += emb1[contextIds[i]][d] * emb0[centerId][d];
+
+
+        if(labels[i] == 1) {
+            for (int d = 0; d < dim_size; d++)
+                z[d] = -1.0;
+        } else {
+            for (int d = 0; d < dim_size; d++)
+                z[d] = 1.0 / (exp(dot) - 1.0);
+        }
+
+        for (int d = 0; d < dim_size; d++)
+            g[d] = alpha * z[d];
+
+        for (int d = 0; d < dim_size; d++) {
+            neule[d] += g[d];
+        }
+
+        for (int d = 0; d < dim_size; d++)
+            emb1[contextIds[i]][d] += g[d];
+    }
+    for (int d = 0; d < dim_size; d++)
+        emb0[centerId][d] += neule[d];
+
+
+    delete[] neule;
+    delete [] diff;
+    delete [] z;
+    delete [] g;
+}
+
 
 
 
 
 void Model::run() {
 
-    //default_random_engine generator;
-    normal_distribution<double> normal_distr(0.0, 1.0);
+    cout << "Params: " << optionalParams.size() << endl;
+    cout << "-------++++++++++++++++++-------" << endl;
+    cout << "Params: " << optionalParams[0] << endl;
+    cout << "Params: " << optionalParams[1] << endl;
 
-    /* */
+
     // Initialize parameters
     uniform_real_distribution<double> real_distr(-0.5 /dim_size , 0.5/dim_size);
 
     for(int node=0; node<vocab_size; node++) {
         for(int d=0; d<dim_size; d++) {
             emb0[node][d] = real_distr(generator);
-            emb1[node][d] = 0.0;
+            if(method_name.compare("exponential") == 0) {
+                emb1[node][d] = real_distr(generator);
+            } else {
+                emb1[node][d] = 0.0;
+            }
         }
     }
 
@@ -270,6 +328,11 @@ void Model::run() {
                             if(method_name.compare("gaussian") == 0) {
 
                                 gaussian_kernel(alpha, x, centerId, contextIds);
+
+                            } else if(method_name.compare("exponential") == 0) {
+
+                                x[0] = 1.0;
+                                exponential(alpha, x, centerId, contextIds);
 
                             } else if(method_name.compare("inf_poly") == 0) {
 
