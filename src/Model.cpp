@@ -201,22 +201,19 @@ void Model::exponential(double alpha, vector <double> labels, int centerId, vect
 
 
         if(labels[i] == 1) {
-            for (int d = 0; d < dim_size; d++)
-                z[d] = -1.0;
+            eta = -1.0;
         } else {
-            for (int d = 0; d < dim_size; d++)
-                z[d] = 1.0 / (exp(dot) - 1.0);
+            eta = 1.0 / (exp(dot) - 1.0);
         }
 
-        for (int d = 0; d < dim_size; d++)
-            g[d] = alpha*z[d];
+        eta = alpha * eta;
 
         for (int d = 0; d < dim_size; d++) {
-            neule[d] += g[d]*emb1[contextIds[i]][d];
+            neule[d] += eta * emb1[contextIds[i]][d];
         }
 
         for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += g[d]*emb0[centerId][d];
+            emb1[contextIds[i]][d] += eta * emb0[centerId][d];
     }
     for (int d = 0; d < dim_size; d++)
         emb0[centerId][d] += neule[d];
