@@ -209,14 +209,14 @@ void Model::exponential(double alpha, vector <double> labels, int centerId, vect
         }
 
         for (int d = 0; d < dim_size; d++)
-            g[d] = alpha * z[d];
+            g[d] = alpha*z[d];
 
         for (int d = 0; d < dim_size; d++) {
-            neule[d] += g[d];
+            neule[d] += g[d]*emb1[contextIds[i]][d];
         }
 
         for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += g[d];
+            emb1[contextIds[i]][d] += g[d]*emb0[centerId][d];
     }
     for (int d = 0; d < dim_size; d++)
         emb0[centerId][d] += neule[d];
@@ -242,13 +242,16 @@ void Model::run() {
 
     // Initialize parameters
     uniform_real_distribution<double> real_distr(-0.5 /dim_size , 0.5/dim_size);
+    uniform_real_distribution<double> real_distr_exp(-0.05 /dim_size , 0.05/dim_size);
 
     for(int node=0; node<vocab_size; node++) {
         for(int d=0; d<dim_size; d++) {
-            emb0[node][d] = real_distr(generator);
+
             if(method_name.compare("exponential") == 0) {
-                emb1[node][d] = real_distr(generator);
+                emb0[node][d] = real_distr_exp(generator);
+                emb1[node][d] = real_distr_exp(generator);
             } else {
+                emb0[node][d] = real_distr(generator);
                 emb1[node][d] = 0.0;
             }
         }
