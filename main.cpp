@@ -30,7 +30,7 @@ int main(int argc, char** argv) {
         if(argc >= 5) {
             optionalParams[0] = stod(argv[4]);
             optionalParams.push_back(1.0);
-            optionalParams[1] = 0.1; // beta FIX THIS LINE
+            optionalParams[1] = 1.0; // beta FIX THIS LINE
         }
         if(argc >= 6)
             starting_alpha = stod(argv[5]);
