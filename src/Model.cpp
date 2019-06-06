@@ -181,7 +181,7 @@ void Model::exponential(double alpha, vector <double> labels, int centerId, vect
     double *neule;
     double *z, *g, eta, *diff;
     double dot=0.0;
-    double lambda = 10.0;
+    double lambda = 0.1;
 
     neule = new double[dim_size];
     diff = new double[dim_size];
@@ -214,10 +214,10 @@ void Model::exponential(double alpha, vector <double> labels, int centerId, vect
         }
 
         for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += eta * emb0[centerId][d] + lambda*2.0*z[d];
+            emb1[contextIds[i]][d] += eta * emb0[centerId][d] + lambda*2.0*emb1[contextIds[i]][d];
     }
     for (int d = 0; d < dim_size; d++)
-        emb0[centerId][d] += neule[d] + lambda*2.0*z[d];
+        emb0[centerId][d] += neule[d] + lambda*2.0*emb0[centerId][d];
 
 
     delete[] neule;
