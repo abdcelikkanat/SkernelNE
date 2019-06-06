@@ -64,6 +64,9 @@ int main(int argc, char** argv) {
     if(method_name.str().compare("gaussian") == 0)
         cout << "Variance: " << optionalParams[0] << endl;
 
+    if(method_name.str().compare("gaussian2") == 0)
+        cout << "Variance: " << optionalParams[0] << endl;
+
     if(method_name.str().compare("exponential") == 0)
         cout << "Exponential kernel" << endl;
 
