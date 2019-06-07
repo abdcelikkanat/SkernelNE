@@ -145,10 +145,10 @@ void Model::gaussian_kernel2(double alpha, vector <double> labels, int centerId,
 
         temp1 = p / (2.0 * var);
         for (int d = 0; d < dim_size; d++)
-            g[d] = -alpha*( labels[i] - exp(-temp1) ) * ( -exp(-temp1) ) * (-temp1) * (-diff[d] / var);
+            g[d] = -alpha*( labels[i] - exp(-temp1) ) * ( -exp(-temp1) ) * (-diff[d] / var);
 
         for (int d = 0; d < dim_size; d++) {
-            neule[d] = g[d];
+            neule[d] += g[d];
         }
 
         for (int d = 0; d < dim_size; d++)
