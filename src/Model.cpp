@@ -231,7 +231,7 @@ void Model::inf_poly_kernel2(double alpha, vector <double> labels, int centerId,
     double *z, *g, eta, *diff;
     double alpha_p = optionalParams[0];
     double beta_p = optionalParams[1];
-    double temp1, temp2;
+    double temp1, temp2, p, max_val, min_val;
 
     neule = new double[dim_size];
     diff = new double[dim_size];
@@ -249,25 +249,13 @@ void Model::inf_poly_kernel2(double alpha, vector <double> labels, int centerId,
         for (int d = 0; d < dim_size; d++)
             diff[d] = emb1[contextIds[i]][d] - emb0[centerId][d];
 
-        eta = 0.0;
+        p = 0.0;
         for (int d = 0; d < dim_size; d++)
-            eta += pow(diff[d], 2.0);
+            p += pow(diff[d], 2.0);
 
-        if(labels[i] > 0) { // beta^{-alpha}
-            for (int d = 0; d < dim_size; d++)
-                z[d] = -alpha_p * ( 2.0*diff[d] / (beta_p + eta) );
-        } else {
-            temp1 = (beta_p + eta);
-            temp2 = alpha_p * pow(temp1, -alpha_p-1.0) / ( pow(beta_p, -alpha_p) - pow(temp1, -alpha_p) );
-            for (int d = 0; d < dim_size; d++)
-                z[d] = 2.0*diff[d] * temp2;
-        }
-
-        temp1 = (beta_p + eta);
-
-
+        temp1 = (beta_p + p);
         for (int d = 0; d < dim_size; d++)
-            g[d] = -alpha * ( pow(beta_p, -alpha_p) - pow(temp1, -alpha_p) ) * ( alpha_p * pow(temp1, -alpha_p-1.0) ) * (2.0 * diff[d]);
+            g[d] = -alpha * ( labels[i] - pow(temp1, -alpha_p) ) * ( alpha_p * pow(temp1, -alpha_p-1.0) ) * (2.0 * diff[d]);
 
         for (int d = 0; d < dim_size; d++) {
             neule[d] += -g[d];
