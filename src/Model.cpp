@@ -491,7 +491,7 @@ void Model::run() {
                             } else if(method_name.compare("exponential2") == 0) {
 
                                 x[0] = 1.0;
-                                exponential(alpha, x, centerId, contextIds);
+                                exponential2(alpha, x, centerId, contextIds);
 
                             } else if(method_name.compare("inf_poly") == 0) {
 
