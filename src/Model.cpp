@@ -327,6 +327,55 @@ void Model::exponential(double alpha, vector <double> labels, int centerId, vect
 
 
 
+void Model::exponential2(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+
+    double *neule;
+    double *z, *g, eta, *diff;
+    double dot=0.0;
+    double temp1, temp2;
+
+    neule = new double[dim_size];
+    diff = new double[dim_size];
+    z = new double[dim_size];
+    g = new double[dim_size];
+
+    for (int d = 0; d < dim_size; d++) {
+        neule[d] = 0.0;
+        diff[d] = 0.0;
+    }
+
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        dot = 0.0;
+        for (int d = 0; d < dim_size; d++)
+            dot += emb1[contextIds[i]][d] * emb0[centerId][d];
+
+
+        temp1 = dot;
+        temp2 = exp(-temp1);
+        for (int d = 0; d < dim_size; d++)
+            g[d] = -alpha * ( labels[i] - temp2 ) * ( -temp2 ) * (-1.0);
+
+
+        for (int d = 0; d < dim_size; d++) {
+            neule[d] += g[d] * emb1[contextIds[i]][d];
+        }
+
+        for (int d = 0; d < dim_size; d++)
+            emb1[contextIds[i]][d] += emb0[centerId][d];
+    }
+    for (int d = 0; d < dim_size; d++)
+        emb0[centerId][d] += neule[d];
+
+
+    delete[] neule;
+    delete [] diff;
+    delete [] z;
+    delete [] g;
+}
+
+
 
 
 void Model::run() {
@@ -435,6 +484,11 @@ void Model::run() {
                                 gaussian_kernel2(alpha, x, centerId, contextIds);
 
                             } else if(method_name.compare("exponential") == 0) {
+
+                                x[0] = 1.0;
+                                exponential(alpha, x, centerId, contextIds);
+
+                            } else if(method_name.compare("exponential2") == 0) {
 
                                 x[0] = 1.0;
                                 exponential(alpha, x, centerId, contextIds);

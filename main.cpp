@@ -70,6 +70,9 @@ int main(int argc, char** argv) {
     if(method_name.str().compare("exponential") == 0)
         cout << "Exponential kernel" << endl;
 
+    if(method_name.str().compare("exponential2") == 0)
+        cout << "Exponential2 kernel" << endl;
+
     if(method_name.str().compare("inf_poly") == 0)
         cout << "Alpha: " << optionalParams[0] << " Beta: " << optionalParams[1] << endl;
 

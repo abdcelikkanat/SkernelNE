@@ -50,6 +50,7 @@ public:
     void exponential(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
     void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
     void inf_poly_kernel2(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+    void exponential2(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
     void run();
     void save_embeddings(string file_path);
 
