@@ -118,6 +118,12 @@ bool parse_arguments(int argc, char** argv, string &corpus_file, string &embeddi
                 embedding_file = argv[i + 1];
             } else if (arg_name.compare("--method") == 0) {
                 method_name = argv[i + 1];
+            } else if (arg_name.compare("--sigma") == 0) {
+                optionalParams[0] = stod(argv[i + 1]);
+            } else if (arg_name.compare("--alpha") == 0) {
+                optionalParams[0] = stod(argv[i + 1]);
+            } else if (arg_name.compare("--beta") == 0) {
+                optionalParams[1] = stod(argv[i + 1]);
             } else if (arg_name.compare("--starting_alpha") == 0) {
                 starting_alpha = stod(argv[i + 1]);
             } else if (arg_name.compare("--min_alpha") == 0) {
