@@ -61,6 +61,9 @@ int main(int argc, char** argv) {
     if(method_name.compare("inf_poly") == 0)
         cout << "Alpha: " << optionalParams[0] << " Beta: " << optionalParams[1] << endl;
 
+    if(method_name.compare("without_kernel") == 0)
+        cout << "No kernel will be used!" << endl;
+
 
 
     Model model(corpus_file, method_name, optionalParams, starting_alpha, min_alpha, decay_rate,

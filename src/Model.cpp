@@ -61,6 +61,42 @@ double Model::sigmoid(double z) {
 }
 
 
+void Model::without_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+
+    double *neule;
+    double *z, *diff;
+    double p=0.0, g=0.0;
+
+    neule = new double[dim_size];
+    for (int d = 0; d < dim_size; d++)
+        neule[d] = 0.0;
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        p = 0.0;
+        for (int d = 0; d < dim_size; d++)
+            p += emb1[contextIds[i]][d] * emb0[centerId][d];
+
+        g = 0.0;
+        for (int d = 0; d < dim_size; d++)
+            g = +alpha*( labels[i] - p );
+
+        for (int d = 0; d < dim_size; d++) {
+            neule[d] += g*emb1[contextIds[i]][d];
+        }
+
+        for (int d = 0; d < dim_size; d++)
+            emb1[contextIds[i]][d] += g*emb0[centerId][d];
+    }
+    for (int d = 0; d < dim_size; d++)
+        emb0[centerId][d] += neule[d];
+
+
+    delete [] neule;
+}
+
+
+
 void Model::gaussian_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
 
     double *neule;
@@ -501,6 +537,11 @@ void Model::run() {
                             } else if(method_name.compare("inf_poly2") == 0) {
 
                                 x[0] = pow(optionalParams[1], -optionalParams[0]);
+                                inf_poly_kernel2(alpha, x, centerId, contextIds);
+
+                            } else if(method_name.compare("without_kernel") == 0) {
+
+                                x[0] = 1.0;
                                 inf_poly_kernel2(alpha, x, centerId, contextIds);
 
                             } else if(method_name.compare("deneme") == 0) {
