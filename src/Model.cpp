@@ -61,7 +61,7 @@ double Model::sigmoid(double z) {
 }
 
 
-void Model::without_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+void Model::ne(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
 
     double *neule;
     double *z, *diff;
@@ -96,63 +96,7 @@ void Model::without_kernel(double alpha, vector <double> labels, int centerId, v
 }
 
 
-
-void Model::gaussian_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
-
-    double *neule;
-    double *z, *g, eta, *diff;
-    double var = optionalParams[0];
-
-    neule = new double[dim_size];
-    diff = new double[dim_size];
-    z = new double[dim_size];
-    g = new double[dim_size];
-
-    for (int d = 0; d < dim_size; d++) {
-        neule[d] = 0.0;
-        diff[d] = 0.0;
-    }
-
-
-    for(int i = 0; i < contextIds.size(); i++) {
-
-        for (int d = 0; d < dim_size; d++)
-            diff[d] = emb1[contextIds[i]][d] - emb0[centerId][d];
-
-        eta = 0.0;
-        for (int d = 0; d < dim_size; d++)
-            eta += pow(diff[d], 2.0);
-
-        if(labels[i] == 1) {
-            for (int d = 0; d < dim_size; d++)
-                z[d] = -diff[d] / var;
-        } else {
-            for (int d = 0; d < dim_size; d++)
-                z[d] = (diff[d] / var) * (1.0 / (exp(eta / (2.0 * var)) - 1.0));
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            g[d] = alpha * z[d];
-
-        for (int d = 0; d < dim_size; d++) {
-            neule[d] += -g[d];
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += g[d];
-    }
-    for (int d = 0; d < dim_size; d++)
-        emb0[centerId][d] += neule[d];
-
-
-    delete[] neule;
-    delete [] diff;
-    delete [] z;
-    delete [] g;
-}
-
-
-void Model::gaussian_kernel2(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+void Model::gauss(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
 
     double *neule;
     double *z, *g, eta, *diff;
@@ -202,66 +146,10 @@ void Model::gaussian_kernel2(double alpha, vector <double> labels, int centerId,
 
 
 
-void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
-
-    double *neule;
-    double *z, *g, eta, *diff;
-    double alpha_p = optionalParams[0];
-    double beta_p = optionalParams[1];
-    double temp1, temp2;
-
-    neule = new double[dim_size];
-    diff = new double[dim_size];
-    z = new double[dim_size];
-    g = new double[dim_size];
-
-    for (int d = 0; d < dim_size; d++) {
-        neule[d] = 0.0;
-        diff[d] = 0.0;
-    }
 
 
-    for(int i = 0; i < contextIds.size(); i++) {
 
-        for (int d = 0; d < dim_size; d++)
-            diff[d] = emb1[contextIds[i]][d] - emb0[centerId][d];
-
-        eta = 0.0;
-        for (int d = 0; d < dim_size; d++)
-            eta += pow(diff[d], 2.0);
-
-        if(labels[i] > 0) { // beta^{-alpha}
-            for (int d = 0; d < dim_size; d++)
-                z[d] = -alpha_p * ( 2.0*diff[d] / (beta_p + eta) );
-        } else {
-            temp1 = (beta_p + eta);
-            temp2 = alpha_p * pow(temp1, -alpha_p-1.0) / ( pow(beta_p, -alpha_p) - pow(temp1, -alpha_p) );
-            for (int d = 0; d < dim_size; d++)
-                z[d] = 2.0*diff[d] * temp2;
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            g[d] = alpha * z[d];
-
-        for (int d = 0; d < dim_size; d++) {
-            neule[d] += -g[d];
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += g[d];
-    }
-    for (int d = 0; d < dim_size; d++)
-        emb0[centerId][d] += neule[d];
-
-
-    delete[] neule;
-    delete [] diff;
-    delete [] z;
-    delete [] g;
-}
-
-
-void Model::inf_poly_kernel2(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+void Model::sch(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
 
     double *neule;
     double *z, *g, eta, *diff;
@@ -311,116 +199,9 @@ void Model::inf_poly_kernel2(double alpha, vector <double> labels, int centerId,
 }
 
 
-void Model::exponential(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
-
-    double *neule;
-    double *z, *g, eta, *diff;
-    double dot=0.0;
-    double lambda = 0.0001;
-
-    neule = new double[dim_size];
-    diff = new double[dim_size];
-    z = new double[dim_size];
-    g = new double[dim_size];
-
-    for (int d = 0; d < dim_size; d++) {
-        neule[d] = 0.0;
-        diff[d] = 0.0;
-    }
-
-
-    for(int i = 0; i < contextIds.size(); i++) {
-
-        dot = 0.0;
-        for (int d = 0; d < dim_size; d++)
-            dot += emb1[contextIds[i]][d] * emb0[centerId][d];
-
-
-        if(labels[i] == 1) {
-            eta = -1.0;
-        } else {
-            eta = 1.0 / (exp(dot) - 1.0);
-        }
-
-        eta = alpha * eta;
-
-        for (int d = 0; d < dim_size; d++) {
-            neule[d] += eta * emb1[contextIds[i]][d];
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += eta * emb0[centerId][d] - lambda*2.0*emb1[contextIds[i]][d];
-    }
-    for (int d = 0; d < dim_size; d++)
-        emb0[centerId][d] += neule[d] - lambda*2.0*emb0[centerId][d];
-
-
-    delete[] neule;
-    delete [] diff;
-    delete [] z;
-    delete [] g;
-}
-
-
-
-void Model::exponential2(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
-
-    double *neule;
-    double *z, *g, eta, *diff;
-    double dot=0.0;
-    double temp1, temp2;
-
-    neule = new double[dim_size];
-    diff = new double[dim_size];
-    z = new double[dim_size];
-    g = new double[dim_size];
-
-    for (int d = 0; d < dim_size; d++) {
-        neule[d] = 0.0;
-        diff[d] = 0.0;
-    }
-
-
-    for(int i = 0; i < contextIds.size(); i++) {
-
-        dot = 0.0;
-        for (int d = 0; d < dim_size; d++)
-            dot += emb1[contextIds[i]][d] * emb0[centerId][d];
-
-
-        temp1 = dot;
-        temp2 = exp(-temp1);
-        for (int d = 0; d < dim_size; d++)
-            g[d] = -alpha * ( labels[i] - temp2 ) * ( -temp2 ) * (-1.0);
-
-
-        for (int d = 0; d < dim_size; d++) {
-            neule[d] += g[d] * emb1[contextIds[i]][d];
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += emb0[centerId][d];
-    }
-    for (int d = 0; d < dim_size; d++)
-        emb0[centerId][d] += neule[d];
-
-
-    delete[] neule;
-    delete [] diff;
-    delete [] z;
-    delete [] g;
-}
-
-
 
 
 void Model::run() {
-
-    cout << "Params: " << optionalParams.size() << endl;
-    cout << "-------++++++++++++++++++-------" << endl;
-    cout << "Params: " << optionalParams[0] << endl;
-    cout << "Params: " << optionalParams[1] << endl;
-
 
     // Initialize parameters
     uniform_real_distribution<double> real_distr(-0.5 /dim_size , 0.5/dim_size);
@@ -510,43 +291,20 @@ void Model::run() {
                             x[0] = 1.0;
                             fill(x.begin() + 1, x.end(), 0.0);
 
-                            if(method_name.compare("gaussian") == 0) {
-
-                                gaussian_kernel(alpha, x, centerId, contextIds);
-
-                            } else if(method_name.compare("gaussian2") == 0) {
+                            if(method_name.compare("gauss") == 0) {
 
                                 x[0] = 1.0;
-                                gaussian_kernel2(alpha, x, centerId, contextIds);
+                                gauss(alpha, x, centerId, contextIds);
 
-                            } else if(method_name.compare("exponential") == 0) {
-
-                                x[0] = 1.0;
-                                exponential(alpha, x, centerId, contextIds);
-
-                            } else if(method_name.compare("exponential2") == 0) {
-
-                                x[0] = 1.0;
-                                exponential2(alpha, x, centerId, contextIds);
-
-                            } else if(method_name.compare("inf_poly") == 0) {
+                            } else if(method_name.compare("sch") == 0) {
 
                                 x[0] = pow(optionalParams[1], -optionalParams[0]);
-                                inf_poly_kernel(alpha, x, centerId, contextIds);
+                                sch(alpha, x, centerId, contextIds);
 
-                            } else if(method_name.compare("inf_poly2") == 0) {
-
-                                x[0] = pow(optionalParams[1], -optionalParams[0]);
-                                inf_poly_kernel2(alpha, x, centerId, contextIds);
-
-                            } else if(method_name.compare("without_kernel") == 0) {
+                            } else if(method_name.compare("ne") == 0) {
 
                                 x[0] = 1.0;
-                                inf_poly_kernel2(alpha, x, centerId, contextIds);
-
-                            } else if(method_name.compare("deneme") == 0) {
-                                //cout << "method2" << endl;
-                                /* */
+                                ne(alpha, x, centerId, contextIds);
 
                             } else {
                                 cout << "Not a valid method name" << endl;

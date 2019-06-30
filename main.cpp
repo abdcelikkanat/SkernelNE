@@ -46,22 +46,8 @@ int main(int argc, char** argv) {
     cout << "Input file: " << corpus_file << endl;
     cout << "Output file: " << embedding_file << endl;
     cout << "Method name: " << method_name << endl;
-    if(method_name.compare("gaussian") == 0)
-        cout << "Variance: " << optionalParams[0] << endl;
 
-    if(method_name.compare("gaussian2") == 0)
-        cout << "Variance: " << optionalParams[0] << endl;
-
-    if(method_name.compare("exponential") == 0)
-        cout << "Exponential kernel" << endl;
-
-    if(method_name.compare("exponential2") == 0)
-        cout << "Exponential2 kernel" << endl;
-
-    if(method_name.compare("inf_poly") == 0)
-        cout << "Alpha: " << optionalParams[0] << " Beta: " << optionalParams[1] << endl;
-
-    if(method_name.compare("without_kernel") == 0)
+    if(method_name.compare("ne") == 0)
         cout << "No kernel will be used!" << endl;
 
 
@@ -95,7 +81,7 @@ bool parse_arguments(int argc, char** argv, string &corpus_file, string &embeddi
 
     // Set the help message
     help_msg << "\nUsage: ./kernelNodeEmb\n";
-    help_msg << "\t[ --input input.corpus ] [ --emb output_file.embedding ] [ --method {gaussian, exponential} ]\n";
+    help_msg << "\t[ --input input.corpus ] [ --emb output_file.embedding ] [ --method {gauss, sch, ne} ]\n";
     help_msg <<"\nOptional parameters:\n";
     help_msg << "\t[ --sigma (Default: " << optionalParams[0]  << ") ]\n";
     help_msg << "\t[ --alpha (Default: " << optionalParams[0] << ") ]\n";
