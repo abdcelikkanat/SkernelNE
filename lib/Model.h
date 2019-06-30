@@ -45,13 +45,9 @@ public:
     Model(string f_path, string method_name, vector <double> optionalParams, double s_alpha, double m_alpha, double d_rate, int dim, int neg, int w_size, int num_iters);
     ~Model();
     double sigmoid(double z);
-    void gaussian_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void gaussian_kernel2(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void exponential(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void inf_poly_kernel2(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void exponential2(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void without_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+    void gauss(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+    void sch(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+    void ne(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
     void run();
     void save_embeddings(string file_path);
 
