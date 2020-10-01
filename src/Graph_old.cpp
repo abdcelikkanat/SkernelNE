@@ -2,7 +2,7 @@
 // Created by abdulkadir on 13/11/18.
 //
 
-#include "lib/Graph.h"
+#include "Graph.h"
 
 Graph::Graph() {
     cout << "Constructor" << endl;
