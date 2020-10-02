@@ -1,7 +1,6 @@
 #ifndef FAST_BERN_VOCABULARY_H
 #define FAST_BERN_VOCABULARY_H
 
-#include "Graph_old.h"
 #include <string>
 #include <sstream>
 #include <unordered_map>
