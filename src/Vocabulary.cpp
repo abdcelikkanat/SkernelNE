@@ -2,7 +2,7 @@
 //
 //
 
-#include "lib/Vocabulary.h"
+#include "Vocabulary.h"
 
 
 

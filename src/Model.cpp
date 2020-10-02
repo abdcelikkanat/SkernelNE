@@ -1,29 +1,31 @@
 //
-//
-//
 
-#include "lib/Model.h"
+#include "Model.h"
 
-Model::Model(string f_path, string m_name, vector <double> opt_params, double s_alpha, double m_alpha, double d_rate, int dim, int neg, int w_size,  int num_iters) {
-    method_name = m_name;
-    file_path = f_path;
+Model::Model(string &corpusFile, string &kernel, double &sigma,
+             unsigned int &dimension, unsigned int &window, unsigned int &neg,
+             double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter) {
 
-    optionalParams = opt_params;
+    this->corpusFile = corpusFile;
+    this->kernel = kernel;
+    this->sigma = sigma;
+    this->dim_size = dimension;
+    this->window_size = window;
+    this->negative_sample_size = neg;
 
-    window_size = w_size;
-    dim_size = dim;
-    negative_sample_size = neg;
+    this->lr = lr;
+    this->min_lr = min_lr;
+    this->decay_rate = decay_rate;
+    this->lambda = lambda;
+    this->num_of_iters = iter;
 
-    Vocabulary vocab(file_path);
+
+    Vocabulary vocab(this->corpusFile);
     node2Id = vocab.getNode2Id();
     total_nodes = vocab.getTotalNodes();
     vocab_size = (int)vocab.getVocabSize();
     vocab_items = vocab.getVocabItems();
 
-    starting_alpha = s_alpha;
-    decay_rate = d_rate;
-    min_alpha = m_alpha;
-    num_of_iters = num_iters;
 
     // Set up sampling class
     vector <int> counts = vocab.getNodeCounts();
@@ -61,7 +63,74 @@ double Model::sigmoid(double z) {
 }
 
 
-void Model::gaussian_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+
+void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
+
+    double *neule;
+    double *z, *g, eta, *diff;
+    double e;
+    double var = this->sigma * this->sigma;
+
+    neule = new double[this->dim_size];
+    diff = new double[this->dim_size];
+    z = new double[this->dim_size];
+    g = new double[this->dim_size];
+
+    for (int d = 0; d < this->dim_size; d++) {
+        neule[d] = 0.0;
+        diff[d] = 0.0;
+    }
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        for (int d = 0; d < this->dim_size; d++)
+            diff[d] = this->emb1[contextIds[i]][d] - this->emb0[centerId][d];
+
+        eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += diff[d]*diff[d];
+
+        /*
+        if(labels[i] == 1) {
+            e = exp( -eta/(2.0*var) );
+            for (int d = 0; d < this->dim_size; d++)
+                z[d] = 2.0 * ( 1-e  ) * ( e ) * ( diff[d]/var );
+                //z[d] = 2.0 * ( 1-e  ) * ( -e ) * ( - diff[d]/var );
+        } else {
+            e = exp( -eta/var );
+            for (int d = 0; d < this->dim_size; d++)
+                z[d] = 2.0 * e * ( -diff[d]/var );
+        }
+        */
+        e = exp( -eta/(2.0*var) );
+        for (int d = 0; d < this->dim_size; d++)
+            z[d] = 2.0 * ( labels[i]-e  ) * ( e ) * ( diff[d]/var );
+        ///////
+
+        for (int d = 0; d < this->dim_size; d++)
+            g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
+        for (int d = 0; d < this->dim_size; d++) {
+            neule[d] += g[d]; /////////////
+        }
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]);
+
+
+
+    delete[] neule;
+    delete [] diff;
+    delete [] z;
+    delete [] g;
+}
+
+
+/*
+void Model::gaussian_multiple_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
 
     double *neule;
     double *z, *g, eta, *diff;
@@ -114,11 +183,10 @@ void Model::gaussian_kernel(double alpha, vector <double> labels, int centerId, 
     delete [] z;
     delete [] g;
 }
-
-
+*/
 
 void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
-
+    /*
     double *neule;
     double *z, *g, eta, *diff;
     double alpha_p = optionalParams[0];
@@ -173,6 +241,7 @@ void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, 
     delete [] diff;
     delete [] z;
     delete [] g;
+     */
 }
 
 
@@ -197,7 +266,7 @@ void Model::run() {
     }
 
 
-    fstream fs(file_path, fstream::in);
+    fstream fs(this->corpusFile, fstream::in);
     if(fs.is_open()) {
 
         string line, token, center_node, context_node;
@@ -208,10 +277,9 @@ void Model::run() {
         int centerId;
         double z, g, *neule;
         int *neg_sample_ids;
-        double alpha;
+        double current_alpha = this->lr;
         int processed_node_count = 0;
 
-        alpha = starting_alpha;
 
         cout << "--> The update of the model parameters has started." << endl;
 
@@ -219,7 +287,7 @@ void Model::run() {
 
             fs.clear();
             fs.seekg(0, ios::beg);
-            cout << "    + Iteration: " << iter+1 << endl;
+            cout << "    + Iteration: " << iter+1 << "/" << this->num_of_iters << endl;
 
             while (getline(fs, line)) {
                 stringstream ss(line);
@@ -230,12 +298,12 @@ void Model::run() {
 
                     // Update alpha
                     if (processed_node_count % 10000 == 0) {
-                        alpha = starting_alpha * (1.0 - decay_rate * ((float) processed_node_count / (total_nodes*num_of_iters)));
+                        current_alpha = this->lr * (1.0 - this->decay_rate * ((float) processed_node_count / (total_nodes*num_of_iters)));
 
-                        if (alpha < min_alpha)
-                            alpha = min_alpha;
+                        if (current_alpha < this->min_lr)
+                            current_alpha = this->min_lr;
 
-                        cout << "\r    + Current alpha: " << setprecision(4) << alpha;
+                        cout << "\r    + Current alpha: " << setprecision(4) << current_alpha;
                         cout << " and " << processed_node_count-(total_nodes*iter) << "" << setprecision(3) << "("
                              << 100 * (float) ( processed_node_count-(total_nodes*iter) ) / total_nodes << "%) "
                              << "nodes in the file have been processed.";
@@ -243,8 +311,8 @@ void Model::run() {
                     }
 
 
-                    context_start_pos = max(0, center_pos - window_size);
-                    context_end_pos = min(center_pos + window_size, (int) nodesInLine.size() - 1);
+                    context_start_pos = max(0, center_pos - (int)this->window_size);
+                    context_end_pos = min(center_pos + (int)this->window_size, (int) nodesInLine.size() - 1);
 
                     center_node = nodesInLine[center_pos];
                     centerId = node2Id[center_node];
@@ -259,7 +327,6 @@ void Model::run() {
                         if (center_pos != context_pos) {
                             context_node = nodesInLine[context_pos];
 
-
                             contextIds[0] = node2Id[context_node];
                             uni.sample(negative_sample_size, neg_sample_ids);
                             for (int i = 0; i < negative_sample_size; i++)
@@ -267,19 +334,30 @@ void Model::run() {
                             x[0] = 1.0;
                             fill(x.begin() + 1, x.end(), 0.0);
 
-                            if(method_name.compare("gaussian") == 0) {
+                            if(this->kernel == "gaussian") {
 
-                                gaussian_kernel(alpha, x, centerId, contextIds);
+                                update_rule_gaussian_kernel(x, centerId, contextIds, current_alpha);
 
-                            } else if(method_name.compare("inf_poly") == 0) {
+                            } else if(this->kernel == "inf_poly") {
 
-                                x[0] = pow(optionalParams[1], -optionalParams[0]);
-                                inf_poly_kernel(alpha, x, centerId, contextIds);
+                                //x[0] = pow(optionalParams[1], -optionalParams[0]);
+                                //inf_poly_kernel(alpha, x, centerId, contextIds);
 
-                            } else if(method_name.compare("deneme") == 0) {
+                            } else if(this->kernel == "deneme") {
                                 //cout << "method2" << endl;
                                 /* */
 
+                            } else if(this->kernel == "multiple") {
+                                //cout << "method2" << endl;
+                                double var1 = 1.0;
+                                double var2 = 2.0;
+                                double var3 = 3.0;
+                                double c1= 3.0;
+                                double c2 = 2.0;
+                                double c3 = 1.0;
+                                //gaussian_kernel(alpha, x, centerId, contextIds, var1, c1);
+                                //gaussian_kernel(alpha, x, centerId, contextIds, var2, c2);
+                                //gaussian_kernel(alpha, x, centerId, contextIds, var3, c3);
                             } else {
                                 cout << "Not a valid method name" << endl;
                             }
@@ -318,13 +396,22 @@ void Model::run() {
 
 void Model::save_embeddings(string file_path) {
 
+    this->save_embeddings(file_path, 0);
+
+}
+
+void Model::save_embeddings(string file_path, int layerId) {
+
     fstream fs(file_path, fstream::out);
     if(fs.is_open()) {
         fs << vocab_size << " " << dim_size << endl;
         for(int node=0; node<vocab_size; node++) {
             fs << vocab_items[node].node << " ";
             for(int d=0; d<dim_size; d++) {
-                fs << emb0[node][d] << " ";
+                if(layerId == 1)
+                    fs << emb1[node][d] << " ";
+                else
+                    fs << emb0[node][d] << " ";
             }
             fs << endl;
         }

@@ -1,15 +1,11 @@
-//
-//
-//
-
 #ifndef FAST_BERN_VOCABULARY_H
 #define FAST_BERN_VOCABULARY_H
 
-#include "lib/Graph.h"
+#include "Graph_old.h"
 #include <string>
 #include <sstream>
 #include <unordered_map>
-#include "lib/Node.h"
+#include "Node.h"
 #include <vector>
 
 using namespace std;

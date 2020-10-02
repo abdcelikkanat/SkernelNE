@@ -2,7 +2,7 @@
 // Created by abdulkadir on 23/04/19.
 //
 
-#include "lib/Node.h"
+#include "Node.h"
 
 
 Node::Node(string &n) {
