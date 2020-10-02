@@ -1,3 +1,6 @@
 [submodule "ext/Graph"]
 	path = ext/Graph
 	url = https://github.com/abdcelikkanat/Graph
+[submodule "Graph"]
+	path = Graph
+	url = https://github.com/abdcelikkanat/Graph.git
