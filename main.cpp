@@ -49,8 +49,8 @@ int main(int argc, char** argv) {
     model.run();
     model.save_embeddings(embFile);
 
-    embFile = "/Users/abdulkadir/workspace/kernelNE/embeddings/deneme_emb1.embedding";
-    model.save_embeddings(embFile, 1);
+    //embFile = "/Users/abdulkadir/workspace/kernelNE/embeddings/deneme_emb1.embedding";
+    //model.save_embeddings(embFile, 1);
     /* ----------------------------------------------- */
 
     return 0;
