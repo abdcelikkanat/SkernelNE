@@ -1,22 +1,20 @@
 #include <iostream>
-#include "lib/Vocabulary.h"
-#include "lib/Unigram.h"
 #include "lib/Model.h"
 #include <string>
-#include <sstream>
 #include "Utilities.h"
 
 using namespace std;
 
-
 int main(int argc, char** argv) {
 
+    /* --- Definition of Variables ---------------------------------------------------------------------------------- */
     string corpusFile, embFile, kernel;
     unsigned int dimension, window_size, negative_sample_size, iter;
     double sigma, learning_rate, min_learning_rate, decay_rate, lambda;
     bool verbose;
+    /* -------------------------------------------------------------------------------------------------------------- */
 
-    /* --- Default Values --- */
+    /* --- Setting of Default Values ------------------------------------------------------------------------------------------- */
     sigma = 1.0;
     dimension = 128;
     window_size = 10;
@@ -27,9 +25,9 @@ int main(int argc, char** argv) {
     lambda = 0.01;
     iter = 1;
     verbose = false;
-    /* ---------------------- */
+    /* -------------------------------------------------------------------------------------------------------------- */
 
-    /* --- Parse Arguments --- */
+    /* --- Parse Arguments ------------------------------------------------------------------------------------------ */
     int err_code = parse_arguments(argc, argv, corpusFile, embFile, kernel, sigma,
             dimension, window_size, negative_sample_size,
             learning_rate, min_learning_rate, decay_rate, lambda, iter,
@@ -40,9 +38,9 @@ int main(int argc, char** argv) {
             cout << "+ Error code: " << err_code << endl;
         return 0;
     }
-    /* ---------------------- */
+    /* -------------------------------------------------------------------------------------------------------------- */
 
-    /* --- Learn the representations and save them --- */
+    /* --- Learn Representations and Save --------------------------------------------------------------------------- */
     Model model(corpusFile, kernel, sigma,
                 dimension, window_size, negative_sample_size,
                 learning_rate, min_learning_rate, decay_rate, lambda, iter);
@@ -51,7 +49,7 @@ int main(int argc, char** argv) {
 
     //embFile = "/Users/abdulkadir/workspace/kernelNE/embeddings/deneme_emb1.embedding";
     //model.save_embeddings(embFile, 1);
-    /* ----------------------------------------------- */
+    /* -------------------------------------------------------------------------------------------------------------- */
 
     return 0;
 }
