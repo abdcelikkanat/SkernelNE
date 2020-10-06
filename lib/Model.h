@@ -35,19 +35,22 @@ private:
     default_random_engine generator;
     Unigram uni;
 
+    double sigmoid(double z);
+    void update_rule_nokernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
+    void update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
+    void update_rule_schoenberg_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
+    void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+
 public:
 
     Model(string &corpusFile, string &kernel, double &sigma,
           unsigned int &dimension, unsigned int &window, unsigned int &neg,
           double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter);
     ~Model();
-    double sigmoid(double z);
-    void update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
-    void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+
     void run();
     void save_embeddings(string file_path);
     void save_embeddings(string file_path, int layerId);
-
 
 };
 

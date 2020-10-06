@@ -1,6 +1,6 @@
 #include <iostream>
-#include "lib/Model.h"
 #include <string>
+#include "lib/Model.h"
 #include "Utilities.h"
 
 using namespace std;

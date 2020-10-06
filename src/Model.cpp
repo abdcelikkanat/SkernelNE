@@ -63,6 +63,54 @@ double Model::sigmoid(double z) {
 }
 
 
+void Model::update_rule_nokernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
+
+    double *neule;
+    double *z, *g, eta, *diff;
+    double e;
+
+    neule = new double[this->dim_size];
+    diff = new double[this->dim_size];
+    z = new double[this->dim_size];
+    g = new double[this->dim_size];
+
+    for (int d = 0; d < this->dim_size; d++) {
+        neule[d] = 0.0;
+        diff[d] = 0.0;
+    }
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        for (int d = 0; d < this->dim_size; d++)
+            diff[d] = this->emb1[contextIds[i]][d] - this->emb0[centerId][d];
+
+        eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += this->emb1[contextIds[i]][d] * this->emb0[centerId][d];
+
+        for (int d = 0; d < this->dim_size; d++)
+            z[d] = 2.0 * ( labels[i]-eta  );
+
+        for (int d = 0; d < this->dim_size; d++)
+            g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
+        for (int d = 0; d < this->dim_size; d++) {
+            neule[d] += g[d]*this->emb1[contextIds[i]][d];
+        }
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += -g[d]*this->emb0[centerId][d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]);
+
+
+    delete[] neule;
+    delete [] diff;
+    delete [] z;
+    delete [] g;
+}
+
 
 void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
@@ -127,6 +175,62 @@ void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, ve
     delete [] z;
     delete [] g;
 }
+
+
+void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
+
+    double *neule;
+    double *z, *g, eta, *diff;
+    double e, scalar_val;
+    double var = this->sigma * this->sigma;
+
+    neule = new double[this->dim_size];
+    diff = new double[this->dim_size];
+    z = new double[this->dim_size];
+    g = new double[this->dim_size];
+
+    for (int d = 0; d < this->dim_size; d++) {
+        neule[d] = 0.0;
+        diff[d] = 0.0;
+    }
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        for (int d = 0; d < this->dim_size; d++)
+            diff[d] = this->emb1[contextIds[i]][d] - this->emb0[centerId][d]; // (x-y)
+
+        eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += diff[d]*diff[d];
+        eta = eta + 1.0;
+        eta = 1.0 / eta; // eta = 1 / (1 + (x-y)^2 )
+
+        e = pow(eta, this->sigma); // ( 1 + (x-y) )^{-\alpha}
+        scalar_val = 2.0 * ( labels[i] - e  ) * ( this->sigma * e * eta ) * ( 2.0 );
+        for (int d = 0; d < this->dim_size; d++)
+            z[d] =  scalar_val * ( diff[d] );
+
+        for (int d = 0; d < this->dim_size; d++)
+            g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
+        for (int d = 0; d < this->dim_size; d++) {
+            neule[d] += g[d];
+        }
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]); // minus comes from gradient
+
+
+
+    delete[] neule;
+    delete [] diff;
+    delete [] z;
+    delete [] g;
+}
+
 
 
 /*
@@ -334,9 +438,17 @@ void Model::run() {
                             x[0] = 1.0;
                             fill(x.begin() + 1, x.end(), 0.0);
 
-                            if(this->kernel == "gaussian") {
+                            if(this->kernel == "nokernel") {
+
+                                update_rule_nokernel(x, centerId, contextIds, current_alpha);
+
+                            } else if(this->kernel == "gaussian" || this->kernel == "gauss") {
 
                                 update_rule_gaussian_kernel(x, centerId, contextIds, current_alpha);
+
+                            } else if(this->kernel == "schoenberg" || this->kernel == "sch") {
+
+                                update_rule_schoenberg_kernel(x, centerId, contextIds, current_alpha);
 
                             } else if(this->kernel == "inf_poly") {
 

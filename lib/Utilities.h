@@ -129,8 +129,8 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         cout << "The number of negative samples must be greater than 0!" << endl;
         return -5;
     }
-    if( kernel != "gaussian" && kernel != "sch" ) {
-        cout << "The kernel name must be gauss or XXXX!" << kernel << endl;
+    if( kernel != "nokernel" && kernel != "gaussian" && (kernel != "sch" && kernel != "schoenberg" ) ) {
+        cout << "The kernel name must be gaussian or schoenberg!" << kernel << endl;
         return -6;
     }
 
