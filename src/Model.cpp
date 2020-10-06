@@ -176,6 +176,29 @@ void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, ve
     delete [] g;
 }
 
+void Model::get_gaussian_kernel(double label, double var, int centerId, int contextId, double current_lr) {
+
+    double eta, e, *diff,  *z, *g;
+
+    diff = new double[this->dim_size];
+    for (int d = 0; d < this->dim_size; d++)
+        diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d];
+
+    eta = 0.0;
+    for (int d = 0; d < this->dim_size; d++)
+        eta += diff[d]*diff[d];
+
+    e = exp( -eta/(2.0*var) );
+    for (int d = 0; d < this->dim_size; d++)
+        z[d] = 2.0 * ( label-e  ) * ( e ) * ( diff[d]/var );
+
+    for (int d = 0; d < this->dim_size; d++)
+        g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
+
+
+    delete [] diff;
+}
 
 void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
