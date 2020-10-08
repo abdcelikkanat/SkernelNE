@@ -24,7 +24,7 @@ class Model {
 private:
     string corpusFile, kernel;
     unsigned int dim_size, window_size, negative_sample_size, num_of_iters;
-    double sigma, lr, min_lr, decay_rate, lambda;
+    double sigma, *kernelParams, lr, min_lr, decay_rate, lambda;
 
     unsigned long vocab_size;
     unordered_map <string, int> node2Id;
@@ -40,10 +40,13 @@ private:
     void update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
     void update_rule_schoenberg_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
     void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
+    void get_gaussian_grad(double *g, double label, double var, int centerId, int contextId, double current_lr);
+
+    void update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
 
 public:
 
-    Model(string &corpusFile, string &kernel, double &sigma,
+    Model(string &corpusFile, string &kernel, double *kernelParams,
           unsigned int &dimension, unsigned int &window, unsigned int &neg,
           double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter);
     ~Model();

@@ -2,13 +2,14 @@
 
 #include "Model.h"
 
-Model::Model(string &corpusFile, string &kernel, double &sigma,
+Model::Model(string &corpusFile, string &kernel, double *kernelParams,
              unsigned int &dimension, unsigned int &window, unsigned int &neg,
              double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter) {
 
     this->corpusFile = corpusFile;
     this->kernel = kernel;
-    this->sigma = sigma;
+    this->sigma = kernelParams[1];
+    this->kernelParams = kernelParams;
     this->dim_size = dimension;
     this->window_size = window;
     this->negative_sample_size = neg;
@@ -37,6 +38,7 @@ Model::Model(string &corpusFile, string &kernel, double &sigma,
         emb0[i] = new double[dim_size];
         emb1[i] = new double[dim_size];
     }
+
 
 }
 
@@ -112,7 +114,7 @@ void Model::update_rule_nokernel(vector <double> labels, int centerId, vector <i
 }
 
 
-void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
+void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr ) {
 
     double *neule;
     double *z, *g, eta, *diff;
@@ -176,30 +178,6 @@ void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, ve
     delete [] g;
 }
 
-void Model::get_gaussian_kernel(double label, double var, int centerId, int contextId, double current_lr) {
-
-    double eta, e, *diff,  *z, *g;
-
-    diff = new double[this->dim_size];
-    for (int d = 0; d < this->dim_size; d++)
-        diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d];
-
-    eta = 0.0;
-    for (int d = 0; d < this->dim_size; d++)
-        eta += diff[d]*diff[d];
-
-    e = exp( -eta/(2.0*var) );
-    for (int d = 0; d < this->dim_size; d++)
-        z[d] = 2.0 * ( label-e  ) * ( e ) * ( diff[d]/var );
-
-    for (int d = 0; d < this->dim_size; d++)
-        g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
-
-
-
-    delete [] diff;
-}
-
 void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
     double *neule;
@@ -256,61 +234,69 @@ void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, 
 
 
 
-/*
-void Model::gaussian_multiple_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
+
+void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
     double *neule;
-    double *z, *g, eta, *diff;
-    double var = optionalParams[0];
+    double *g;
 
-    neule = new double[dim_size];
-    diff = new double[dim_size];
-    z = new double[dim_size];
-    g = new double[dim_size];
+    neule = new double[this->dim_size];
 
-    for (int d = 0; d < dim_size; d++) {
+    g = new double[this->dim_size];
+
+    for (int d = 0; d < this->dim_size; d++) {
         neule[d] = 0.0;
-        diff[d] = 0.0;
     }
-
 
     for(int i = 0; i < contextIds.size(); i++) {
 
-        for (int d = 0; d < dim_size; d++)
-            diff[d] = emb1[contextIds[i]][d] - emb0[centerId][d];
+        this->get_gaussian_grad(g, labels[i], this->kernelParams[1], centerId, contextIds[i], current_lr);
 
-        eta = 0.0;
-        for (int d = 0; d < dim_size; d++)
-            eta += pow(diff[d], 2.0);
+        this->get_gaussian_grad(g, labels[i], this->kernelParams[2], centerId, contextIds[i], current_lr);
 
-        if(labels[i] == 1) {
-            for (int d = 0; d < dim_size; d++)
-                z[d] = -diff[d] / var;
-        } else {
-            for (int d = 0; d < dim_size; d++)
-                z[d] = (diff[d] / var) * (1.0 / (exp(eta / (2.0 * var)) - 1.0));
+        for (int d = 0; d < this->dim_size; d++) {
+            neule[d] += g[d];
         }
 
-        for (int d = 0; d < dim_size; d++)
-            g[d] = alpha * z[d];
-
-        for (int d = 0; d < dim_size; d++) {
-            neule[d] += -g[d];
-        }
-
-        for (int d = 0; d < dim_size; d++)
-            emb1[contextIds[i]][d] += g[d];
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
     }
-    for (int d = 0; d < dim_size; d++)
-        emb0[centerId][d] += neule[d];
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]);
 
 
     delete[] neule;
-    delete [] diff;
-    delete [] z;
     delete [] g;
 }
-*/
+
+
+void Model::get_gaussian_grad(double *g, double label, double var, int centerId, int contextId, double current_lr) {
+
+    double eta, e, *diff,  *z;
+    z = new double[this->dim_size];
+    diff = new double[this->dim_size];
+
+
+    for (int d = 0; d < this->dim_size; d++)
+        diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d];
+
+    eta = 0.0;
+    for (int d = 0; d < this->dim_size; d++)
+        eta += diff[d]*diff[d];
+
+    e = exp( -eta/(2.0*var) );
+    for (int d = 0; d < this->dim_size; d++)
+        z[d] = 2.0 * ( label-e  ) * ( e ) * ( diff[d]/var );
+
+    for (int d = 0; d < this->dim_size; d++)
+        g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
+    delete [] diff;
+    delete [] z;
+
+}
+
+
 
 void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
     /*
@@ -472,6 +458,10 @@ void Model::run() {
                             } else if(this->kernel == "schoenberg" || this->kernel == "sch") {
 
                                 update_rule_schoenberg_kernel(x, centerId, contextIds, current_alpha);
+
+                            } else if(this->kernel == "multi-gauss" || this->kernel == "multiple-gauss" || this->kernel == "multiple-gaussian") {
+
+                                update_gaussian_multiple_kernel(x, centerId, contextIds, current_alpha);
 
                             } else if(this->kernel == "inf_poly") {
 

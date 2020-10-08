@@ -15,14 +15,14 @@ using namespace std;
 
 
 
-int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, string &kernel, double &sigma,
+int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, string &kernel, double *kernelParams,
                     unsigned int &dimension, unsigned int &window, unsigned int &neg,
                     double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter,
                     bool &verbose) {
 
     vector <string> parameter_names{"--help",
-                                    "--corpus", "--emb", "--kernel", "--sigma",
-                                    "--dim", "--window", "--neg",
+                                    "--corpus", "--emb", "--kernel", "--params"
+,                                    "--dim", "--window", "--neg",
                                     "--lr", "--min_lr", "--decay_rate", "--lambda", "--iter",
                                     "--verbose"
     };
@@ -37,7 +37,7 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
                       << parameter_names[3] << " KERNEL "<< "\n";
 
     help_msg_opt << "\nOptional parameters:\n";
-    help_msg_opt << "\t[ " << parameter_names[4] << " (Default: " << sigma << ") ]\n";
+    help_msg_opt << "\t[ " << parameter_names[4] << " (Default: " << kernelParams[1] << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[5] << " (Default: " << dimension << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[6] << " (Default: " << window << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[7] << " (Default: " << neg << ") ]\n";
@@ -52,36 +52,43 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
     help_msg << "" << help_msg_required.str() << help_msg_opt.str();
 
     // Read the argument values
-    for(int i=1; i<argc; i=i+2) {
+    for(int i=1; i<argc;) {
 
         arg_name.assign(argv[i]);
 
         if (arg_name.compare(parameter_names[1]) == 0) {
-            corpusFile = argv[i + 1];
+            corpusFile = argv[++i];
         } else if (arg_name.compare(parameter_names[2]) == 0) {
-            embFile = argv[i + 1];
+            embFile = argv[++i];
         } else if (arg_name.compare(parameter_names[3]) == 0) {
-            kernel = argv[i + 1];
+            kernel = argv[++i];
         } else if (arg_name.compare(parameter_names[4]) == 0) {
-            sigma = stod(argv[i + 1]);
+            int numOfValues = stoi(argv[++i]);
+            if(numOfValues > 1) {
+                delete [] kernelParams;
+                kernelParams = new double[numOfValues+1];
+                kernelParams[0] = (double) numOfValues;
+            }
+            for(int k=1; k <= numOfValues; k++)
+                parameter_names[k] = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[5]) == 0) {
-            dimension = stoi(argv[i + 1]);
+            dimension = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[6]) == 0) {
-            window = stoi(argv[i + 1]);
+            window = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[7]) == 0) {
-            neg = stoi(argv[i + 1]);
+            neg = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[8]) == 0) {
-            lr = stod(argv[i + 1]);
+            lr = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[9]) == 0) {
-            min_lr = stod(argv[i + 1]);
+            min_lr = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[10]) == 0) {
-            decay_rate = stod(argv[i + 1]);
+            decay_rate = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[11]) == 0) {
-            lambda = stod(argv[i + 1]);
+            lambda = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[12]) == 0) {
-            iter = stoi(argv[i + 1]);
+            iter = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[13]) == 0) {
-            verbose = stoi(argv[i + 1]);
+            verbose = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[0]) == 0 or arg_name.compare("-h") == 0) {
             cout << help_msg.str() << endl;
             return 1;
@@ -91,13 +98,18 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         }
         arg_name.clear();
 
+        i++;
+
     }
 
     // Print all the parameter settings if verbose is set
     if(verbose) {
         cout << "--> Parameter settings." << endl;
         cout << "\t+ Kernel: " << kernel << endl;
-        cout << "\t+ Sigma:" << sigma << endl;
+        cout << "\t+ KernelParameters:";
+        for(int k=1; k<=kernelParams[0]; k++)
+            cout << kernelParams[k] << " ";
+        cout << endl;
         cout << "\t+ Dimension: " << dimension << endl;
         cout << "\t+ Window size: " << window << endl;
         cout << "\t+ Negative samples: " << neg << endl;
@@ -129,8 +141,11 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         cout << "The number of negative samples must be greater than 0!" << endl;
         return -5;
     }
-    if( kernel != "nokernel" && kernel != "gaussian" && (kernel != "sch" && kernel != "schoenberg" ) ) {
-        cout << "The kernel name must be gaussian or schoenberg!" << kernel << endl;
+    if( kernel != "nokernel" &&
+        (kernel != "gauss" && kernel != "gaussian") &&
+        (kernel != "sch" && kernel != "schoenberg" ) &&
+        (kernel != "multi-gauss" && kernel == "multiple-gauss" && kernel == "multiple-gaussian") ) {
+            cout << "The kernel name must be gaussian, schoenberg or multiple-gaussian! " << kernel << endl;
         return -6;
     }
 
