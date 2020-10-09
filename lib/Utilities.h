@@ -15,7 +15,7 @@ using namespace std;
 
 
 
-int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, string &kernel, double *kernelParams,
+int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, string &kernel, double *&kernelParams,
                     unsigned int &dimension, unsigned int &window, unsigned int &neg,
                     double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter,
                     bool &verbose) {
@@ -63,6 +63,7 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         } else if (arg_name.compare(parameter_names[3]) == 0) {
             kernel = argv[++i];
         } else if (arg_name.compare(parameter_names[4]) == 0) {
+
             int numOfValues = stoi(argv[++i]);
             if(numOfValues > 1) {
                 delete [] kernelParams;
@@ -70,7 +71,8 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
                 kernelParams[0] = (double) numOfValues;
             }
             for(int k=1; k <= numOfValues; k++)
-                parameter_names[k] = stod(argv[++i]);
+                kernelParams[k] = stod(argv[++i]);
+
         } else if (arg_name.compare(parameter_names[5]) == 0) {
             dimension = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[6]) == 0) {

@@ -242,22 +242,19 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     int numOfKernels = (int) this->kernelParams[0];
 
 
-    neule = new double[this->dim_size];
-    g = new double[this->dim_size];
-    temp_g = new double[this->dim_size];
+    neule = new double[this->dim_size]{0};
+    g = new double[this->dim_size]{0};
+    temp_g = new double[this->dim_size]{0};
 
-    for (int d = 0; d < this->dim_size; d++) {
-        neule[d] = 0.0;
-    }
 
     for(int i = 0; i < contextIds.size(); i++) {
 
         for(int k=0; k < numOfKernels; k++) {
 
-            this->get_gaussian_grad(temp_g, labels[i], this->kernelParams[1], centerId, contextIds[i], current_lr);
+            this->get_gaussian_grad(temp_g, labels[i], this->kernelParams[k+1], centerId, contextIds[i], current_lr);
 
             for (int d = 0; d < this->dim_size; d++)
-                g[d] = (1.0 / numOfKernels) * temp_g[d];
+                g[d] += (1.0 / numOfKernels) * temp_g[d];
 
         }
 
