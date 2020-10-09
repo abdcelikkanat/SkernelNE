@@ -238,11 +238,13 @@ void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, 
 void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
     double *neule;
-    double *g;
+    double *g, *temp_g;
+    int numOfKernels = (int) this->kernelParams[0];
+
 
     neule = new double[this->dim_size];
-
     g = new double[this->dim_size];
+    temp_g = new double[this->dim_size];
 
     for (int d = 0; d < this->dim_size; d++) {
         neule[d] = 0.0;
@@ -250,13 +252,17 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
 
     for(int i = 0; i < contextIds.size(); i++) {
 
-        this->get_gaussian_grad(g, labels[i], this->kernelParams[1], centerId, contextIds[i], current_lr);
+        for(int k=0; k < numOfKernels; k++) {
 
-        this->get_gaussian_grad(g, labels[i], this->kernelParams[2], centerId, contextIds[i], current_lr);
+            this->get_gaussian_grad(temp_g, labels[i], this->kernelParams[1], centerId, contextIds[i], current_lr);
 
-        for (int d = 0; d < this->dim_size; d++) {
-            neule[d] += g[d];
+            for (int d = 0; d < this->dim_size; d++)
+                g[d] = (1.0 / numOfKernels) * temp_g[d];
+
         }
+
+        for (int d = 0; d < this->dim_size; d++)
+            neule[d] += g[d];
 
         for (int d = 0; d < this->dim_size; d++)
             this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
@@ -267,6 +273,7 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
 
     delete[] neule;
     delete [] g;
+    delete [] temp_g;
 }
 
 
