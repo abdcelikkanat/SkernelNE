@@ -274,7 +274,7 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
 }
 
 
-void Model::get_gaussian_grad(double *g, double label, double var, int centerId, int contextId, double current_lr) {
+void Model::get_gaussian_grad(double *&g, double label, double var, int centerId, int contextId, double current_lr) {
 
     double eta, e, *diff,  *z;
     z = new double[this->dim_size];

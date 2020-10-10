@@ -40,7 +40,7 @@ private:
     void update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
     void update_rule_schoenberg_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
     void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);
-    void get_gaussian_grad(double *g, double label, double var, int centerId, int contextId, double current_lr);
+    void get_gaussian_grad(double *&g, double label, double var, int centerId, int contextId, double current_lr);
 
     void update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
 

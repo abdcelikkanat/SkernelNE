@@ -169,7 +169,7 @@ int main(int argc, char** argv) {
                 dimension, window_size, negative_sample_size,
                 learning_rate, min_learning_rate, decay_rate, lambda, iter);
     model.run();
-    //model.save_embeddings(embFile);
+    model.save_embeddings(embFile);
 
     //embFile = "/Users/abdulkadir/workspace/kernelNE/embeddings/deneme_emb1.embedding";
     //model.save_embeddings(embFile, 1);
