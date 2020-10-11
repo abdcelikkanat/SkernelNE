@@ -2,7 +2,7 @@
 #include <string>
 #include "lib/Model.h"
 #include "Utilities.h"
-#include "lp_lib.h"
+//#include "lp_lib.h"
 
 using namespace std;
 
