@@ -2,7 +2,7 @@
 #include <string>
 #include "lib/Model.h"
 #include "Utilities.h"
-//#include "lp_lib.h"
+#include "lp_lib.h"
 
 using namespace std;
 
@@ -22,10 +22,10 @@ using namespace std;
 //
 //    if (ret == 0) {
 //        // INITIALIZATION: let us name our variables. Not required, but can be useful for debugging
-//        char* x1 = (char *) "x1";
-//        char* x2 = (char *) "x2";
-//        set_col_name(lp, 1, x1);
-//        set_col_name(lp, 2, x2);
+//        //char* x1 = (char *) "x1";
+//        //char* x2 = (char *) "x2";
+//        //set_col_name(lp, 1, x1);
+//        //set_col_name(lp, 2, x2);
 //
 //        // create space large enough for one row
 //        col_no = (int*) malloc(number_of_cols * sizeof(*col_no));

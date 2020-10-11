@@ -1,6 +1,5 @@
-//
-
 #include "Model.h"
+#include "lp_lib.h"
 
 Model::Model(string &corpusFile, string &kernel, double *kernelParams,
              unsigned int &dimension, unsigned int &window, unsigned int &neg,
@@ -64,6 +63,25 @@ double Model::sigmoid(double z) {
 
 }
 
+double Model::gaussian_kernel(int contextId, int centerId, double sigma) {
+
+    double sq, var;
+    auto *diff = new double[this->dim_size];
+
+    // Compute sigma square
+    var = sigma * sigma;
+
+    for (int d = 0; d < this->dim_size; d++)
+        diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d];
+
+    sq = 0.0;
+    for (int d = 0; d < this->dim_size; d++)
+        sq += diff[d]*diff[d];
+
+    delete [] diff;
+
+    return exp( -sq/(2.0*var) );
+}
 
 void Model::update_rule_nokernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
@@ -233,15 +251,68 @@ void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, 
 }
 
 
+void Model::update_gaussian_multiple_kernel2(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
+
+    double *neule, *g, *z;
+    double ksum;
 
 
-void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
+    /* ----------- Update embedding vectors ----------- */
+    neule = new double[this->dim_size]{0};
+    g = new double[this->dim_size]{0};
+
+
+
+    for (int i = 0; i < contextIds.size(); i++) {
+
+        ksum = 0;
+        auto *e = new double[numOfKernels];
+        for (int k = 0; k < numOfKernels; k++) {
+            e[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            ksum += e[k] / numOfKernels;
+        }
+
+        z = new double[this->dim_size]{0};
+        for (int k = 0; k < numOfKernels; k++) {
+
+            auto *temp_g = new double[this->dim_size]{0};
+            get_gaussian_kernel_grad(temp_g, e[k], contextIds[i], centerId, this->kernelParams[k + 1]);
+            for(int d=0; d < this->dim_size; d++)
+                z[d] += temp_g[d] / numOfKernels;
+            delete [] temp_g;
+
+        }
+        delete [] e;
+
+
+        for(int d=0; d < this->dim_size; d++)
+            g[d] = 2.0 * ( labels[i] - ksum  ) * ( -z[d] );
+        delete [] z;
+
+        for (int d = 0; d < this->dim_size; d++)
+            neule[d] += g[d];
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr * this->lambda * (this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr * this->lambda * (this->emb0[centerId][d]);
+
+
+    delete[] neule;
+    delete[] g;
+    /* ------------------------------------------------ */
+
+}
+
+
+void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
     double *neule;
     double *g, *temp_g;
-    int numOfKernels = (int) this->kernelParams[0];
 
 
+    /* ----------- Update embedding vectors ----------- */
     neule = new double[this->dim_size]{0};
     g = new double[this->dim_size]{0};
     temp_g = new double[this->dim_size]{0};
@@ -271,6 +342,127 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     delete[] neule;
     delete [] g;
     delete [] temp_g;
+    /* ------------------------------------------------ */
+
+
+
+    /* ---------- Update kernel coefficients ---------- */
+    /*
+    lprec *lp;
+    int number_of_cols, *col_no = NULL, j, ret = 0;
+    REAL *row_no = NULL;
+
+    // we will build the model row by row so we start with creating a model with 0 rows and number_of_cols columns
+    number_of_cols = numOfKernels;
+
+    lp = make_lp(0, number_of_cols);
+    if (lp == NULL)
+        ret = 1; // couldn't construct a new model
+
+    if (ret == 0) {
+
+        // create space large enough for one row
+        col_no = (int*) malloc(number_of_cols * sizeof(*col_no));
+        row_no = (REAL *) malloc(number_of_cols * sizeof(*row_no));
+        if ((col_no == NULL) || (row_no == NULL))
+            ret = 2;
+
+        // Set upper and lower bounds for the variables
+        for(int k=1; k<=number_of_cols; k++)
+            set_bounds(lp, k, 0.0, 1.0);
+
+    }
+
+    if (ret == 0) {
+
+        set_add_rowmode(lp, TRUE); // makes building the model faster if it is done rows by row
+
+        // construct
+        int j = 0;
+        while( j < number_of_cols ) {
+            col_no[j] = j + 1; // first column
+            row_no[j] = 1.0;
+            j++;
+        }
+
+        // add the row to lpsolve
+        if (!add_constraintex(lp, j, row_no, col_no, GE, 1.0))
+            ret = 3;
+    }
+
+    if (ret == 0) {
+        // DEFINITION OF OBJECTIVE
+        set_add_rowmode(lp, FALSE); // rowmode should be turned off again when done building the model
+
+        // set the objective function
+        int j = 0;
+        while( j < number_of_cols ) {
+            col_no[j] = j + 1; //
+            row_no[j] = 1.0;
+            j++;
+        }
+
+        // set the objective in lpsolve
+        if (!set_obj_fnex(lp, j, row_no, col_no))
+            ret = 4;
+    }
+
+    if (ret == 0) {
+        // printf("Solving LP problem...\n");
+        // set the object direction to maximize
+        set_minim(lp);
+
+        // just out of curiosity, now show the model in lp forst on screen
+        // this only works if this is a console application. If not, use write_lp
+        // and a filename
+        write_LP(lp, stdout);
+
+        // I only want to see important messages on screen while solving
+        set_verbose(lp, IMPORTANT);
+
+        // now let lpsolve calculate a solution
+        ret = solve(lp);
+        if (ret == OPTIMAL)
+            ret = 0;
+        else
+            ret = 5;
+    }
+
+    if (ret == 0) {
+        // objective value
+        printf("Objective value: %f\n", get_objective(lp));
+
+        // variable values
+        get_variables(lp, row_no);
+        //for (j = 0; j < number_of_cols; j++)
+        //    printf("%s: %.3f\n", get_col_name(lp, j + 1), row_no[j]);
+
+    }
+
+
+    // free allocated memory
+    if (row_no != NULL)
+        free(row_no);
+    if (col_no != NULL)
+        free(col_no);
+
+    if (lp != NULL) {
+    // clean up such that all used memory by lpsolve is freed
+        delete_lp(lp);
+    }
+    */
+
+    /* ------------------------------------------------ */
+
+
+}
+
+void Model::get_gaussian_kernel_grad(double *&g, double e, int contextId, int centerId, double sigma) {
+
+    //double e = this->gaussian_kernel(contextId, centerId, sigma);
+    for (int d = 0; d < this->dim_size; d++)
+        g[d] = e * ( this->emb1[contextId][d] - this->emb0[centerId][d] ) / (sigma*sigma);
+
 }
 
 
@@ -382,6 +574,10 @@ void Model::run() {
         }
     }
 
+    // Get the number of kernels
+    int numOfKernels = (int) this->kernelParams[0];
+    // Set the kernel coefficients
+    auto *kernelCoefficients = new double[numOfKernels]{0};
 
     fstream fs(this->corpusFile, fstream::in);
     if(fs.is_open()) {
@@ -465,7 +661,11 @@ void Model::run() {
 
                             } else if(this->kernel == "multi-gauss" || this->kernel == "multiple-gauss" || this->kernel == "multiple-gaussian") {
 
-                                update_gaussian_multiple_kernel(x, centerId, contextIds, current_alpha);
+                                update_gaussian_multiple_kernel(x, centerId, contextIds, current_alpha, numOfKernels, kernelCoefficients);
+
+                            } else if(this->kernel == "multi-gauss2" || this->kernel == "multiple-gauss2" || this->kernel == "multiple-gaussian2") {
+
+                                update_gaussian_multiple_kernel2(x, centerId, contextIds, current_alpha, numOfKernels, kernelCoefficients);
 
                             } else if(this->kernel == "inf_poly") {
 
@@ -519,6 +719,8 @@ void Model::run() {
         cout << "An error occurred during reading file!" << endl;
     }
 
+
+    delete [] kernelCoefficients;
 
 }
 
