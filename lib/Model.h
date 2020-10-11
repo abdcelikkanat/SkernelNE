@@ -37,7 +37,7 @@ private:
 
     double sigmoid(double z);
     double gaussian_kernel(int contextId, int centerId, double sigma);
-    void get_gaussian_kernel_grad(double *&g, double e, int contextId, int centerId, double var);
+    void get_gaussian_kernel_grad(double *&g, double e, int contextId, int centerId, double sigma);
 
     void update_rule_nokernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);
     void update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr);

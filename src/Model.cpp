@@ -466,12 +466,13 @@ void Model::get_gaussian_kernel_grad(double *&g, double e, int contextId, int ce
 }
 
 
-void Model::get_gaussian_grad(double *&g, double label, double var, int centerId, int contextId, double current_lr) {
+void Model::get_gaussian_grad(double *&g, double label, double sigma, int centerId, int contextId, double current_lr) {
 
     double eta, e, *diff,  *z;
     z = new double[this->dim_size];
     diff = new double[this->dim_size];
 
+    double var = sigma * sigma;
 
     for (int d = 0; d < this->dim_size; d++)
         diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d];
