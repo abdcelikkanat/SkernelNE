@@ -13,8 +13,6 @@ do
 for lambda in ${lambda_list[@]}
 do
 
-for sigma in ${sigma_list[@]}
-do
 
 echo ${graph}
 
@@ -22,7 +20,6 @@ corpusPath=../../TNE/corpus/${graph}_node2vec.corpus
 embPath=../embeddings/${graph}_${kernel}_sigma=1-2-3_lambda=${lambda}.embedding
 ../build/kernelNE --corpus ${corpusPath} --emb ${embPath} --kernel ${kernel} --params 3 1.0 2.0 3.0 --lambda ${lambda} --verbose 1
 
-done
 
 done
 
