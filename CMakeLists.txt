@@ -20,4 +20,5 @@ set(LIB_FILES lib/Model.h lib/Unigram.h lib/Vocabulary.h lib/Node.h lib/Utilitie
 add_executable(${CMAKE_PROJECT_NAME} main.cpp ${SOURCE_FILES} ${LIB_FILES})
 
 
-target_link_libraries(kernelNE PUBLIC ${GML_LIB_DIR} -L"${LPSOLVE_DIR}" -Wl,-rpath,"${LPSOLVE_DIR}" lpsolve55)
+#target_link_libraries(kernelNE PUBLIC ${GML_LIB_DIR} -L"${LPSOLVE_DIR}" -Wl,-rpath,"${LPSOLVE_DIR}" lpsolve55)
+target_link_libraries(kernelNE PUBLIC ${GML_LIB_DIR})
