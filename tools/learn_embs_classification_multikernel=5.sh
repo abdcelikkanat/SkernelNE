@@ -17,7 +17,7 @@ echo ${graph}
 
 corpusPath=../../TNE/corpus/${graph}_node2vec.corpus
 embPath=../embeddings/${graph}_${kernel}_sigma=1-2-3-4-5_lambda=${lambda}.embedding
-../build/kernelNE --corpus ${corpusPath} --emb ${embPath} --kernel ${kernel} --params 3 1.0 2.0 3.0 4.0 5.0 --lambda ${lambda} --verbose 1
+../build/kernelNE --corpus ${corpusPath} --emb ${embPath} --kernel ${kernel} --params 5 1.0 2.0 3.0 4.0 5.0 --lambda ${lambda} --verbose 1
 
 
 done
