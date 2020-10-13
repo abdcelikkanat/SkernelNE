@@ -131,7 +131,6 @@ void Model::update_rule_nokernel(vector <double> labels, int centerId, vector <i
     delete [] g;
 }
 
-
 void Model::update_rule_gaussian_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr ) {
 
     double *neule;
@@ -249,62 +248,6 @@ void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, 
     delete [] z;
     delete [] g;
 }
-
-
-void Model::update_gaussian_multiple_kernel2(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
-
-    double *neule, *g, *z;
-    double ksum;
-
-
-    /* ----------- Update embedding vectors ----------- */
-    neule = new double[this->dim_size]{0};
-    g = new double[this->dim_size]{0};
-
-
-
-    for (int i = 0; i < contextIds.size(); i++) {
-
-        ksum = 0;
-        auto *e = new double[numOfKernels];
-        for (int k = 0; k < numOfKernels; k++) {
-            e[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
-            ksum += e[k] / numOfKernels;
-        }
-
-        z = new double[this->dim_size]{0};
-        for (int k = 0; k < numOfKernels; k++) {
-
-            auto *temp_g = new double[this->dim_size]{0};
-            get_gaussian_kernel_grad(temp_g, e[k], contextIds[i], centerId, this->kernelParams[k + 1]);
-            for(int d=0; d < this->dim_size; d++)
-                z[d] += temp_g[d] / numOfKernels;
-            delete [] temp_g;
-
-        }
-        delete [] e;
-
-
-        for(int d=0; d < this->dim_size; d++)
-            g[d] = 2.0 * ( labels[i] - ksum  ) * ( -z[d] );
-        delete [] z;
-
-        for (int d = 0; d < this->dim_size; d++)
-            neule[d] += g[d];
-
-        for (int d = 0; d < this->dim_size; d++)
-            this->emb1[contextIds[i]][d] += g[d] - current_lr * this->lambda * (this->emb1[contextIds[i]][d]);
-    }
-    for (int d = 0; d < this->dim_size; d++)
-        this->emb0[centerId][d] += -neule[d] - current_lr * this->lambda * (this->emb0[centerId][d]);
-
-
-    delete[] neule;
-    delete[] g;
-    /* ------------------------------------------------ */
-
-}
-
 
 void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
@@ -457,15 +400,6 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
 
 }
 
-void Model::get_gaussian_kernel_grad(double *&g, double e, int contextId, int centerId, double sigma) {
-
-    //double e = this->gaussian_kernel(contextId, centerId, sigma);
-    for (int d = 0; d < this->dim_size; d++)
-        g[d] = e * ( this->emb1[contextId][d] - this->emb0[centerId][d] ) / (sigma*sigma);
-
-}
-
-
 void Model::get_gaussian_grad(double *&g, double label, double sigma, int centerId, int contextId, double current_lr) {
 
     double eta, e, *diff,  *z;
@@ -493,7 +427,72 @@ void Model::get_gaussian_grad(double *&g, double label, double sigma, int center
 
 }
 
+void Model::update_schoenberg_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
+    double *neule;
+    double *g, *temp_g;
+
+
+    /* ----------- Update embedding vectors ----------- */
+    neule = new double[this->dim_size]{0};
+    g = new double[this->dim_size]{0};
+    temp_g = new double[this->dim_size]{0};
+
+
+    for (int i = 0; i < contextIds.size(); i++) {
+
+        for (int k = 0; k < numOfKernels; k++) {
+
+            this->get_schoenberg_grad(temp_g, labels[i], this->kernelParams[k + 1], contextIds[i], centerId, current_lr);
+
+            for (int d = 0; d < this->dim_size; d++)
+                g[d] += (1.0 / numOfKernels) * temp_g[d];
+
+        }
+
+        for (int d = 0; d < this->dim_size; d++)
+            neule[d] += g[d];
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr * this->lambda * (this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr * this->lambda * (this->emb0[centerId][d]);
+
+
+    delete[] neule;
+    delete[] g;
+    delete[] temp_g;
+    /* ------------------------------------------------ */
+
+}
+
+void Model::get_schoenberg_grad(double *&g, double label, double alpha, int contextId, int centerId, double current_lr) {
+
+    double eta, e, scalar_val;
+    auto *diff = new double[this->dim_size]{0};
+
+
+    for (int d = 0; d < this->dim_size; d++)
+        diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d]; // (x-y)
+
+    eta = 0.0;
+    for (int d = 0; d < this->dim_size; d++)
+        eta += diff[d]*diff[d];
+    eta = 1.0 + eta;
+    eta = 1.0 / eta; // eta = (1 + (x-y)^2 ) ^ {-1}
+
+    e = pow(eta, alpha); // ( 1 + (x-y) )^{-\alpha}
+    scalar_val = 2.0 * ( label - e  ) * ( alpha * e * eta ) * ( 2.0 );
+    for (int d = 0; d < this->dim_size; d++)
+        g[d] =  scalar_val * ( diff[d] );
+
+    for (int d = 0; d < this->dim_size; d++)
+        g[d] = -current_lr * g[d]; // minus comes from the objective function, minimization
+
+
+    delete [] diff;
+}
 
 void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds) {
     /*
@@ -554,7 +553,67 @@ void Model::inf_poly_kernel(double alpha, vector <double> labels, int centerId, 
      */
 }
 
+void Model::update_gaussian_multiple_kernel2(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
+    double *neule, *g, *z;
+    double ksum;
+
+
+    /* ----------- Update embedding vectors ----------- */
+    neule = new double[this->dim_size]{0};
+    g = new double[this->dim_size]{0};
+
+
+
+    for (int i = 0; i < contextIds.size(); i++) {
+
+        ksum = 0;
+        auto *e = new double[numOfKernels];
+        for (int k = 0; k < numOfKernels; k++) {
+            e[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            ksum += e[k] / numOfKernels;
+        }
+
+        z = new double[this->dim_size]{0};
+        for (int k = 0; k < numOfKernels; k++) {
+
+            auto *temp_g = new double[this->dim_size]{0};
+            get_gaussian_kernel_grad(temp_g, e[k], contextIds[i], centerId, this->kernelParams[k + 1]);
+            for(int d=0; d < this->dim_size; d++)
+                z[d] += temp_g[d] / numOfKernels;
+            delete [] temp_g;
+
+        }
+        delete [] e;
+
+
+        for(int d=0; d < this->dim_size; d++)
+            g[d] = 2.0 * ( labels[i] - ksum  ) * ( -z[d] );
+        delete [] z;
+
+        for (int d = 0; d < this->dim_size; d++)
+            neule[d] += g[d];
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr * this->lambda * (this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr * this->lambda * (this->emb0[centerId][d]);
+
+
+    delete[] neule;
+    delete[] g;
+    /* ------------------------------------------------ */
+
+}
+
+void Model::get_gaussian_kernel_grad(double *&g, double e, int contextId, int centerId, double sigma) {
+
+    //double e = this->gaussian_kernel(contextId, centerId, sigma);
+    for (int d = 0; d < this->dim_size; d++)
+        g[d] = e * ( this->emb1[contextId][d] - this->emb0[centerId][d] ) / (sigma*sigma);
+
+}
 
 
 
@@ -663,6 +722,10 @@ void Model::run() {
                             } else if(this->kernel == "multi-gauss" || this->kernel == "multiple-gauss" || this->kernel == "multiple-gaussian") {
 
                                 update_gaussian_multiple_kernel(x, centerId, contextIds, current_alpha, numOfKernels, kernelCoefficients);
+
+                            } else if(this->kernel == "multi-sch" || this->kernel == "multiple-sch" || this->kernel == "multiple-schoenberg") {
+
+                                update_schoenberg_multiple_kernel(x, contextIds, centerId, current_alpha, numOfKernels, kernelCoefficients);
 
                             } else if(this->kernel == "multi-gauss2" || this->kernel == "multiple-gauss2" || this->kernel == "multiple-gaussian2") {
 

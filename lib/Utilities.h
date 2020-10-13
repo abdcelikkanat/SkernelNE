@@ -147,6 +147,7 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         (kernel != "gauss" && kernel != "gaussian") &&
         (kernel != "sch" && kernel != "schoenberg" ) &&
         (kernel != "multi-gauss" && kernel == "multiple-gauss" && kernel == "multiple-gaussian") &&
+        (kernel != "multi-sch" && kernel == "multiple-sch" && kernel == "multiple-schoenberg") &&
         (kernel != "multi-gauss2" && kernel == "multiple-gauss2" && kernel == "multiple-gaussian2") ) {
             cout << "The kernel name must be gaussian, schoenberg or multiple-gaussian! " << kernel << endl;
         return -6;
