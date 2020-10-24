@@ -325,7 +325,7 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
             this->get_gaussian_grad(temp_g, labels[i], this->kernelParams[k+1], centerId, contextIds[i], current_lr);
 
             for (int d = 0; d < this->dim_size; d++)
-                g[d] += (1.0 / numOfKernels) * temp_g[d];
+                g[d] += (kernelCoefficients[k]) * temp_g[d]; // g[d] += (1.0 / numOfKernels) * temp_g[d];
 
         }
 
@@ -344,116 +344,23 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     delete [] temp_g;
     /* ------------------------------------------------ */
 
-
-
     /* ---------- Update kernel coefficients ---------- */
-    /*
-    lprec *lp;
-    int number_of_cols, *col_no = NULL, j, ret = 0;
-    REAL *row_no = NULL;
+    double kernelSum;
+    double *ker = new double[numOfKernels];
 
-    // we will build the model row by row so we start with creating a model with 0 rows and number_of_cols columns
-    number_of_cols = numOfKernels;
 
-    lp = make_lp(0, number_of_cols);
-    if (lp == NULL)
-        ret = 1; // couldn't construct a new model
-
-    if (ret == 0) {
-
-        // create space large enough for one row
-        col_no = (int*) malloc(number_of_cols * sizeof(*col_no));
-        row_no = (REAL *) malloc(number_of_cols * sizeof(*row_no));
-        if ((col_no == NULL) || (row_no == NULL))
-            ret = 2;
-
-        // Set upper and lower bounds for the variables
-        for(int k=1; k<=number_of_cols; k++)
-            set_bounds(lp, k, 0.0, 1.0);
-
-    }
-
-    if (ret == 0) {
-
-        set_add_rowmode(lp, TRUE); // makes building the model faster if it is done rows by row
-
-        // construct
-        int j = 0;
-        while( j < number_of_cols ) {
-            col_no[j] = j + 1; // first column
-            row_no[j] = 1.0;
-            j++;
+    for(int i = 0; i < contextIds.size(); i++) {
+        kernelSum = 0;
+        for (int k = 0; k < numOfKernels; k++) {
+            ker[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            kernelSum += ker[k];
         }
-
-        // add the row to lpsolve
-        if (!add_constraintex(lp, j, row_no, col_no, GE, 1.0))
-            ret = 3;
+        for (int k = 0; k < numOfKernels; k++)
+            kernelCoefficients[k] += +current_lr * this->lambda * 2.0 * ( 1.0 - kernelSum ) * ker[k];
     }
 
-    if (ret == 0) {
-        // DEFINITION OF OBJECTIVE
-        set_add_rowmode(lp, FALSE); // rowmode should be turned off again when done building the model
-
-        // set the objective function
-        int j = 0;
-        while( j < number_of_cols ) {
-            col_no[j] = j + 1; //
-            row_no[j] = 1.0;
-            j++;
-        }
-
-        // set the objective in lpsolve
-        if (!set_obj_fnex(lp, j, row_no, col_no))
-            ret = 4;
-    }
-
-    if (ret == 0) {
-        // printf("Solving LP problem...\n");
-        // set the object direction to maximize
-        set_minim(lp);
-
-        // just out of curiosity, now show the model in lp forst on screen
-        // this only works if this is a console application. If not, use write_lp
-        // and a filename
-        write_LP(lp, stdout);
-
-        // I only want to see important messages on screen while solving
-        set_verbose(lp, IMPORTANT);
-
-        // now let lpsolve calculate a solution
-        ret = solve(lp);
-        if (ret == OPTIMAL)
-            ret = 0;
-        else
-            ret = 5;
-    }
-
-    if (ret == 0) {
-        // objective value
-        printf("Objective value: %f\n", get_objective(lp));
-
-        // variable values
-        get_variables(lp, row_no);
-        //for (j = 0; j < number_of_cols; j++)
-        //    printf("%s: %.3f\n", get_col_name(lp, j + 1), row_no[j]);
-
-    }
-
-
-    // free allocated memory
-    if (row_no != NULL)
-        free(row_no);
-    if (col_no != NULL)
-        free(col_no);
-
-    if (lp != NULL) {
-    // clean up such that all used memory by lpsolve is freed
-        delete_lp(lp);
-    }
-    */
-
+    delete[] ker;
     /* ------------------------------------------------ */
-
 
 }
 
@@ -579,6 +486,8 @@ void Model::run() {
     int numOfKernels = (int) this->kernelParams[0];
     // Set the kernel coefficients
     auto *kernelCoefficients = new double[numOfKernels]{0};
+    for(int k=0; k<numOfKernels; k++)
+        kernelCoefficients[k] = real_distr(generator);
 
     fstream fs(this->corpusFile, fstream::in);
     if(fs.is_open()) {
