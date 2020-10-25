@@ -289,18 +289,23 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
 
     /* ---------- Update kernel coefficients ---------- */
     double kernelSum;
-    double *ker = new double[numOfKernels];
+    double *ker, *totalKer;
 
+    ker = new double[numOfKernels]{0};
+    totalKer = new double[numOfKernels]{0};
 
     for(int i = 0; i < contextIds.size(); i++) {
         kernelSum = 0;
         for (int k = 0; k < numOfKernels; k++) {
-            ker[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            ker[k] = kernelCoefficients[k] * this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
             kernelSum += ker[k];
         }
         for (int k = 0; k < numOfKernels; k++)
-            kernelCoefficients[k] += +current_lr * this->lambda * 2.0 * ( 1.0 - kernelSum ) * ker[k];
+            totalKer[k] += 2.0 * ( 1.0 - kernelSum ) * -ker[k];
     }
+
+    for (int k = 0; k < numOfKernels; k++)
+        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr*this->lambda*kernelCoefficients[k];
 
     delete[] ker;
     /* ------------------------------------------------ */
