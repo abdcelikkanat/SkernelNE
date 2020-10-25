@@ -305,7 +305,7 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     }
 
     for (int k = 0; k < numOfKernels; k++)
-        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr*this->lambda*kernelCoefficients[k];
+        kernelCoefficients[k] += -current_lr * totalKer[k] + current_lr*this->lambda*kernelCoefficients[k];
 
     delete[] ker;
     /* ------------------------------------------------ */
