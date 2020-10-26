@@ -251,26 +251,49 @@ void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, 
 
 void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
-    double *neule;
-    double *g, *temp_g;
-
 
     /* ----------- Update embedding vectors ----------- */
+    double *neule;
+    double *g, *temp_g;
+    double eta, e, *diff,  *z;
+    double var;
+    double *e_values;
+
     neule = new double[this->dim_size]{0};
     g = new double[this->dim_size]{0};
     temp_g = new double[this->dim_size]{0};
-
+    z = new double[this->dim_size]{0};
+    diff = new double[this->dim_size]{0};
+    e_values = new double[this->dim_size]{0};
+    double e_values_sum=0;
+    double e_values_sum_ext=0;
+    double f;
 
     for(int i = 0; i < contextIds.size(); i++) {
 
+        for (int d = 0; d < this->dim_size; d++)
+            diff[d] = this->emb1[contextIds[i]][d] - this->emb0[centerId][d];
+
+        eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += diff[d]*diff[d];
+
+        e_values_sum = 0;
+        e_values_sum_ext = 0;
         for(int k=0; k < numOfKernels; k++) {
-
-            this->get_gaussian_grad(temp_g, labels[i], this->kernelParams[k+1], centerId, contextIds[i], current_lr);
-
-            for (int d = 0; d < this->dim_size; d++)
-                g[d] += (kernelCoefficients[k]) * temp_g[d]; // g[d] += (1.0 / numOfKernels) * temp_g[d];
-
+            var = this->kernelParams[k+1] * this->kernelParams[k+1];
+            e_values[k] = kernelCoefficients[k] * exp( -eta/(2.0*var) );
+            e_values_sum += e_values[k];
+            e_values_sum_ext += e_values[k] * ( 1.0 / var );
         }
+
+        f = 2.0 * ( labels[i]-e_values_sum  ) * ( e_values_sum_ext );
+        for (int d = 0; d < this->dim_size; d++)
+            z[d] = f * ( diff[d] );
+
+        for (int d = 0; d < this->dim_size; d++)
+            g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
 
         for (int d = 0; d < this->dim_size; d++)
             neule[d] += g[d];
@@ -285,6 +308,40 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     delete[] neule;
     delete [] g;
     delete [] temp_g;
+    delete [] diff;
+    delete [] z;
+    delete [] e_values;
+    /* ------------------------------------------------ */
+    /* ----------- Update embedding vectors ----------- */
+//    neule = new double[this->dim_size]{0};
+//    g = new double[this->dim_size]{0};
+//    temp_g = new double[this->dim_size]{0};
+//
+//
+//    for(int i = 0; i < contextIds.size(); i++) {
+//
+//        for(int k=0; k < numOfKernels; k++) {
+//
+//            this->get_gaussian_grad(temp_g, labels[i], this->kernelParams[k+1], centerId, contextIds[i], current_lr);
+//
+//            for (int d = 0; d < this->dim_size; d++)
+//                g[d] += (kernelCoefficients[k]) * temp_g[d]; // g[d] += (1.0 / numOfKernels) * temp_g[d];
+//
+//        }
+//
+//        for (int d = 0; d < this->dim_size; d++)
+//            neule[d] += g[d];
+//
+//        for (int d = 0; d < this->dim_size; d++)
+//            this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
+//    }
+//    for (int d = 0; d < this->dim_size; d++)
+//        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]);
+//
+//
+//    delete[] neule;
+//    delete [] g;
+//    delete [] temp_g;
     /* ------------------------------------------------ */
 
     /* ---------- Update kernel coefficients ---------- */
@@ -297,16 +354,18 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     for(int i = 0; i < contextIds.size(); i++) {
         kernelSum = 0;
         for (int k = 0; k < numOfKernels; k++) {
-            ker[k] = kernelCoefficients[k] * this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
-            kernelSum += ker[k];
+            ker[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            kernelSum += kernelCoefficients[k] * ker[k];
         }
         for (int k = 0; k < numOfKernels; k++)
-            totalKer[k] += 2.0 * ( 1.0 - kernelSum ) * -ker[k];
+            totalKer[k] += 2.0 * ( labels[i] - kernelSum ) * -ker[k];
     }
 
-    for (int k = 0; k < numOfKernels; k++)
-        kernelCoefficients[k] += -current_lr * totalKer[k] + current_lr*this->lambda*kernelCoefficients[k];
-
+    for (int k = 0; k < numOfKernels; k++) {
+        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->lambda * kernelCoefficients[k];
+        //cout << kernelCoefficients[k] << " ";
+    }
+    //cout << endl;
     delete[] ker;
     /* ------------------------------------------------ */
 
@@ -550,8 +609,15 @@ void Model::run() {
     int numOfKernels = (int) this->kernelParams[0];
     // Set the kernel coefficients
     auto *kernelCoefficients = new double[numOfKernels]{0};
-    for(int k=0; k<numOfKernels; k++)
-        kernelCoefficients[k] = real_distr(generator);
+    double kernelCoeffSum = 0;
+    for(int k=0; k<numOfKernels; k++) {
+        kernelCoefficients[k] = 1.0; //abs(real_distr(generator));
+        kernelCoeffSum += kernelCoefficients[k];
+    }
+    for(int k=0; k<numOfKernels; k++) {
+        kernelCoefficients[k] = kernelCoefficients[k] / kernelCoeffSum;
+        cout << kernelCoefficients[k] << endl;
+    }
 
     fstream fs(this->corpusFile, fstream::in);
     if(fs.is_open()) {
@@ -697,7 +763,10 @@ void Model::run() {
         cout << "An error occurred during reading file!" << endl;
     }
 
-
+    for(int k=0; k<numOfKernels; k++) {
+        cout << kernelCoefficients[k] << " " << endl;
+    }
+    cout << endl;
     delete [] kernelCoefficients;
 
 }
