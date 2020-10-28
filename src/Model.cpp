@@ -83,6 +83,24 @@ double Model::gaussian_kernel(int contextId, int centerId, double sigma) {
     return exp( -sq/(2.0*var) );
 }
 
+double Model::schoenberg_kernel(int contextId, int centerId, double sigma) {
+
+    double inv, sum;
+    auto *diff = new double[this->dim_size];
+
+    for (int d = 0; d < this->dim_size; d++)
+        diff[d] = this->emb1[contextId][d] - this->emb0[centerId][d];
+
+    sum = 0.0;
+    for(int d = 0; d < this->dim_size; d++)
+        sum += diff[d] * diff[d];
+    inv = 1.0 / ( 1.0 + sum );
+
+    delete [] diff;
+
+    return pow(inv, sigma);
+}
+
 void Model::update_rule_nokernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr) {
 
     double *neule;
@@ -400,40 +418,124 @@ void Model::get_gaussian_grad(double *&g, double label, double sigma, int center
 
 void Model::update_schoenberg_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
+    /* ----------- Update embedding vectors ----------- */
     double *neule;
     double *g, *temp_g;
+    double eta, e, *diff,  *z;
+    double var;
+    double *e_values;
 
-
-    /* ----------- Update embedding vectors ----------- */
     neule = new double[this->dim_size]{0};
     g = new double[this->dim_size]{0};
     temp_g = new double[this->dim_size]{0};
+    z = new double[this->dim_size]{0};
+    diff = new double[this->dim_size]{0};
+    e_values = new double[this->dim_size]{0};
+    double e_values_sum=0;
+    double e_values_sum_ext=0;
+    double f;
 
+    for(int i = 0; i < contextIds.size(); i++) {
 
-    for (int i = 0; i < contextIds.size(); i++) {
+        for (int d = 0; d < this->dim_size; d++)
+            diff[d] = this->emb1[contextIds[i]][d] - this->emb0[centerId][d];
 
-        for (int k = 0; k < numOfKernels; k++) {
+        eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += diff[d]*diff[d];
+        eta = 1.0 / ( 1.0 + eta ); // eta = (1 + (x-y)^2 ) ^ {-1}
 
-            this->get_schoenberg_grad(temp_g, labels[i], this->kernelParams[k + 1], contextIds[i], centerId, current_lr);
+        e_values_sum = 0;
+        e_values_sum_ext = 0;
+        for(int k=0; k < numOfKernels; k++) {
+            e = pow(eta, this->kernelParams[k+1]); // ( 1 + (x-y) )^{-\alpha}
 
-            for (int d = 0; d < this->dim_size; d++)
-                g[d] += (1.0 / numOfKernels) * temp_g[d];
-
+            e_values[k] = kernelCoefficients[k] * e;
+            e_values_sum += e_values[k];
+            e_values_sum_ext += e_values[k] * eta * ( 2.0 );
         }
+
+        f = 2.0 * ( labels[i] - e_values_sum  ) * ( e_values_sum_ext );
+        for (int d = 0; d < this->dim_size; d++)
+            z[d] = f * ( diff[d] );
+
+        for (int d = 0; d < this->dim_size; d++)
+            g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
 
         for (int d = 0; d < this->dim_size; d++)
             neule[d] += g[d];
 
         for (int d = 0; d < this->dim_size; d++)
-            this->emb1[contextIds[i]][d] += g[d] - current_lr * this->lambda * (this->emb1[contextIds[i]][d]);
+            this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
     }
     for (int d = 0; d < this->dim_size; d++)
-        this->emb0[centerId][d] += -neule[d] - current_lr * this->lambda * (this->emb0[centerId][d]);
+        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]);
 
 
     delete[] neule;
-    delete[] g;
-    delete[] temp_g;
+    delete [] g;
+    delete [] temp_g;
+    delete [] diff;
+    delete [] z;
+    delete [] e_values;
+    /* ------------------------------------------------ */
+
+    /* ---------- Update kernel coefficients ---------- */
+    double kernelSum;
+    double *ker, *totalKer;
+
+    ker = new double[numOfKernels]{0};
+    totalKer = new double[numOfKernels]{0};
+
+    for(int i = 0; i < contextIds.size(); i++) {
+        kernelSum = 0;
+        for (int k = 0; k < numOfKernels; k++) {
+            ker[k] = this->schoenberg_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            kernelSum += kernelCoefficients[k] * ker[k];
+        }
+        for (int k = 0; k < numOfKernels; k++)
+            totalKer[k] += 2.0 * ( labels[i] - kernelSum ) * -ker[k];
+    }
+
+    for (int k = 0; k < numOfKernels; k++)
+        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->lambda * kernelCoefficients[k];
+
+    delete[] ker;
+    /* ------------------------------------------------ */
+
+
+    /* ----------- Update embedding vectors ----------- */
+//    double *neule;
+//    double *g, *temp_g;
+//    neule = new double[this->dim_size]{0};
+//    g = new double[this->dim_size]{0};
+//    temp_g = new double[this->dim_size]{0};
+//
+//
+//    for (int i = 0; i < contextIds.size(); i++) {
+//
+//        for (int k = 0; k < numOfKernels; k++) {
+//
+//            this->get_schoenberg_grad(temp_g, labels[i], this->kernelParams[k + 1], contextIds[i], centerId, current_lr);
+//
+//            for (int d = 0; d < this->dim_size; d++)
+//                g[d] += (1.0 / numOfKernels) * temp_g[d];
+//
+//        }
+//
+//        for (int d = 0; d < this->dim_size; d++)
+//            neule[d] += g[d];
+//
+//        for (int d = 0; d < this->dim_size; d++)
+//            this->emb1[contextIds[i]][d] += g[d] - current_lr * this->lambda * (this->emb1[contextIds[i]][d]);
+//    }
+//    for (int d = 0; d < this->dim_size; d++)
+//        this->emb0[centerId][d] += -neule[d] - current_lr * this->lambda * (this->emb0[centerId][d]);
+//
+//
+//    delete[] neule;
+//    delete[] g;
+//    delete[] temp_g;
     /* ------------------------------------------------ */
 
 }
