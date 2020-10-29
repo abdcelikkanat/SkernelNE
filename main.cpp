@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
     /* --- Definition of Variables ---------------------------------------------------------------------------------- */
     string corpusFile, embFile, kernel;
     unsigned int dimension, window_size, negative_sample_size, iter;
-    double *kernelParams, learning_rate, min_learning_rate, decay_rate, lambda;
+    double *kernelParams, learning_rate, min_learning_rate, decay_rate, lambda, beta;
     bool verbose;
     kernelParams = new double[2];
     /* -------------------------------------------------------------------------------------------------------------- */
@@ -147,6 +147,7 @@ int main(int argc, char** argv) {
     min_learning_rate = 0.0001;
     decay_rate = 1.0;
     lambda = 0.01;
+    beta = 0.01;
     iter = 1;
     verbose = false;
     /* -------------------------------------------------------------------------------------------------------------- */
@@ -154,7 +155,7 @@ int main(int argc, char** argv) {
     /* --- Parse Arguments ------------------------------------------------------------------------------------------ */
     int err_code = parse_arguments(argc, argv, corpusFile, embFile, kernel, kernelParams,
             dimension, window_size, negative_sample_size,
-            learning_rate, min_learning_rate, decay_rate, lambda, iter,
+            learning_rate, min_learning_rate, decay_rate, lambda, beta, iter,
             verbose);
 
     if(err_code != 0) {
@@ -167,7 +168,7 @@ int main(int argc, char** argv) {
     /* --- Learn Representations and Save --------------------------------------------------------------------------- */
     Model model(corpusFile, kernel, kernelParams,
                 dimension, window_size, negative_sample_size,
-                learning_rate, min_learning_rate, decay_rate, lambda, iter);
+                learning_rate, min_learning_rate, decay_rate, lambda, beta, iter);
     model.run();
     model.save_embeddings(embFile);
 

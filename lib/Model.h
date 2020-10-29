@@ -24,7 +24,7 @@ class Model {
 private:
     string corpusFile, kernel;
     unsigned int dim_size, window_size, negative_sample_size, num_of_iters;
-    double sigma, *kernelParams, lr, min_lr, decay_rate, lambda;
+    double sigma, *kernelParams, lr, min_lr, decay_rate, lambda, beta;
 
     unsigned long vocab_size;
     unordered_map <string, int> node2Id;
@@ -57,7 +57,7 @@ public:
 
     Model(string &corpusFile, string &kernel, double *kernelParams,
           unsigned int &dimension, unsigned int &window, unsigned int &neg,
-          double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter);
+          double &lr, double &min_lr, double &decay_rate, double &lambda, double &beta, unsigned int &iter);
     ~Model();
 
     void run();

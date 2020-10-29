@@ -3,7 +3,7 @@
 
 Model::Model(string &corpusFile, string &kernel, double *kernelParams,
              unsigned int &dimension, unsigned int &window, unsigned int &neg,
-             double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter) {
+             double &lr, double &min_lr, double &decay_rate, double &lambda, double &beta, unsigned int &iter) {
 
     this->corpusFile = corpusFile;
     this->kernel = kernel;
@@ -17,6 +17,7 @@ Model::Model(string &corpusFile, string &kernel, double *kernelParams,
     this->min_lr = min_lr;
     this->decay_rate = decay_rate;
     this->lambda = lambda;
+    this->beta = beta;
     this->num_of_iters = iter;
 
 
@@ -380,7 +381,7 @@ void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId
     }
 
     for (int k = 0; k < numOfKernels; k++) {
-        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->lambda * kernelCoefficients[k];
+        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->beta * kernelCoefficients[k];
         //cout << kernelCoefficients[k] << " ";
     }
     //cout << endl;
@@ -498,7 +499,7 @@ void Model::update_schoenberg_multiple_kernel(vector <double> labels, vector <in
     }
 
     for (int k = 0; k < numOfKernels; k++)
-        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->lambda * kernelCoefficients[k];
+        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->beta * kernelCoefficients[k];
 
     delete[] ker;
     /* ------------------------------------------------ */

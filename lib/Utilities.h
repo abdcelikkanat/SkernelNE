@@ -17,13 +17,13 @@ using namespace std;
 
 int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, string &kernel, double *&kernelParams,
                     unsigned int &dimension, unsigned int &window, unsigned int &neg,
-                    double &lr, double &min_lr, double &decay_rate, double &lambda, unsigned int &iter,
+                    double &lr, double &min_lr, double &decay_rate, double &lambda, double &beta, unsigned int &iter,
                     bool &verbose) {
 
     vector <string> parameter_names{"--help",
                                     "--corpus", "--emb", "--kernel", "--params"
 ,                                    "--dim", "--window", "--neg",
-                                    "--lr", "--min_lr", "--decay_rate", "--lambda", "--iter",
+                                    "--lr", "--min_lr", "--decay_rate", "--lambda", "--beta", "--iter",
                                     "--verbose"
     };
 
@@ -34,10 +34,10 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
     help_msg_required << "\nUsage: ./" << Constants::ProgramName;
     help_msg_required << " " << parameter_names[1] << " CORPUS_FILE "
                       << parameter_names[2] << " EMB_FILE "
-                      << parameter_names[3] << " KERNEL "<< "\n";
+                      << parameter_names[3] << " KERNEL " << endl;
 
     help_msg_opt << "\nOptional parameters:\n";
-    help_msg_opt << "\t[ " << parameter_names[4] << " (Default: " << kernelParams[1] << ") ]\n";
+    help_msg_opt << "\t[ " << parameter_names[4] << " (Default: " << kernelParams[0] << " " << kernelParams[1] << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[5] << " (Default: " << dimension << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[6] << " (Default: " << window << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[7] << " (Default: " << neg << ") ]\n";
@@ -45,8 +45,9 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
     help_msg_opt << "\t[ " << parameter_names[9] << " (Default: " << min_lr << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[10] << " (Default: " << decay_rate << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[11] << " (Default: " << lambda << ") ]\n";
-    help_msg_opt << "\t[ " << parameter_names[12] << " (Default: " << iter << ") ]\n";
-    help_msg_opt << "\t[ " << parameter_names[13] << " (Default: " << verbose << ") ]\n";
+    help_msg_opt << "\t[ " << parameter_names[12] << " (Default: " << beta << ") ]\n";
+    help_msg_opt << "\t[ " << parameter_names[13] << " (Default: " << iter << ") ]\n";
+    help_msg_opt << "\t[ " << parameter_names[14] << " (Default: " << verbose << ") ]\n";
     help_msg_opt << "\t[ " << parameter_names[0] << ", -h ] Shows this message";
 
     help_msg << "" << help_msg_required.str() << help_msg_opt.str();
@@ -88,8 +89,10 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         } else if (arg_name.compare(parameter_names[11]) == 0) {
             lambda = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[12]) == 0) {
-            iter = stoi(argv[++i]);
+            beta = stod(argv[++i]);
         } else if (arg_name.compare(parameter_names[13]) == 0) {
+            iter = stoi(argv[++i]);
+        } else if (arg_name.compare(parameter_names[14]) == 0) {
             verbose = stoi(argv[++i]);
         } else if (arg_name.compare(parameter_names[0]) == 0 or arg_name.compare("-h") == 0) {
             cout << help_msg.str() << endl;
@@ -119,6 +122,7 @@ int parse_arguments(int argc, char** argv, string &corpusFile, string &embFile, 
         cout << "\t+ Minimum learning rate: " << min_lr << endl;
         cout << "\t+ Decay rate: " << decay_rate << endl;
         cout << "\t+ Lambda: " << lambda << endl;
+        cout << "\t+ Beta: " << beta << endl;
         cout << "\t+ Number of iterations: " << iter << endl;
     }
 
