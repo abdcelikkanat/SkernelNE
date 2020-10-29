@@ -416,7 +416,7 @@ void Model::get_gaussian_grad(double *&g, double label, double sigma, int center
 
 }
 
-void Model::update_schoenberg_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId, double current_lr, int numOfKernels, double *kernelCoefficients) {
+void Model::update_schoenberg_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId, double current_lr, int numOfKernels, double *&kernelCoefficients) {
 
     /* ----------- Update embedding vectors ----------- */
     double *neule;
