@@ -48,6 +48,8 @@ private:
     void update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients);
     void get_schoenberg_grad(double *&g, double label, double alpha, int contextId, int centerId, double current_lr);
     void update_schoenberg_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId,  double current_lr, int numOfKernels, double *&kernelCoefficients);
+    void update_gauss_sch_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId,  double current_lr, int numOfKernels, double *&kernelCoefficients);
+
 
     // Depreceated methods
     void inf_poly_kernel(double alpha, vector <double> labels, int centerId, vector <int> contextIds);

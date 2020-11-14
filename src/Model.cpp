@@ -270,6 +270,8 @@ void Model::update_rule_schoenberg_kernel(vector <double> labels, int centerId, 
 
 void Model::update_gaussian_multiple_kernel(vector <double> labels, int centerId, vector <int> contextIds, double current_lr, int numOfKernels, double *kernelCoefficients) {
 
+    //for(int k=0; k<numOfKernels; k++)
+    //    kernelCoefficients[k] = 1.0/numOfKernels;
 
     /* ----------- Update embedding vectors ----------- */
     double *neule;
@@ -541,6 +543,127 @@ void Model::update_schoenberg_multiple_kernel(vector <double> labels, vector <in
 
 }
 
+
+
+void Model::update_gauss_sch_multiple_kernel(vector <double> labels, vector <int> contextIds, int centerId, double current_lr, int numOfKernels, double *&kernelCoefficients) {
+
+    /* ----------- Update embedding vectors ----------- */
+    double *neule;
+    double *g, *temp_g;
+    double eta, e, *diff,  *z;
+    double var;
+    double *e_values;
+
+    neule = new double[this->dim_size]{0};
+    g = new double[this->dim_size]{0};
+    temp_g = new double[this->dim_size]{0};
+    z = new double[this->dim_size]{0};
+    diff = new double[this->dim_size]{0};
+    e_values = new double[this->dim_size]{0};
+    double e_values_sum=0;
+    double e_values_sum_ext=0;
+    double f;
+
+    for(int i = 0; i < contextIds.size(); i++) {
+
+        /*
+                 eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += diff[d]*diff[d];
+
+        e_values_sum = 0;
+        e_values_sum_ext = 0;
+        for(int k=0; k < numOfKernels; k++) {
+            var = this->kernelParams[k+1] * this->kernelParams[k+1];
+            e_values[k] = kernelCoefficients[k] * exp( -eta/(2.0*var) );
+            e_values_sum += e_values[k];
+            e_values_sum_ext += e_values[k] * ( 1.0 / var );
+        }
+
+        f = 2.0 * ( labels[i]-e_values_sum  ) * ( e_values_sum_ext );
+
+         */
+
+        for (int d = 0; d < this->dim_size; d++)
+            diff[d] = this->emb1[contextIds[i]][d] - this->emb0[centerId][d];
+
+        eta = 0.0;
+        for (int d = 0; d < this->dim_size; d++)
+            eta += diff[d]*diff[d];
+        eta = 1.0 / ( 1.0 + eta ); // eta = (1 + (x-y)^2 ) ^ {-1}
+
+        e_values_sum = 0;
+        e_values_sum_ext = 0;
+        for(int k=0; k < numOfKernels/2; k++) {
+            var = this->kernelParams[k+1] * this->kernelParams[k+1];
+            e_values[k] = kernelCoefficients[k] * exp( -eta/(2.0*var) );
+            e_values_sum += e_values[k];
+            e_values_sum_ext += e_values[k] * ( 1.0 / var );
+        }
+        for(int k=numOfKernels/2; k < numOfKernels; k++) {
+            e = pow(eta, this->kernelParams[k+1]); // ( 1 + (x-y) )^{-\alpha}
+            e_values[k] = kernelCoefficients[k] * e;
+            e_values_sum += e_values[k];
+            e_values_sum_ext += e_values[k] * eta * ( 2.0 );
+        }
+
+        f = 2.0 * ( labels[i] - e_values_sum  ) * ( e_values_sum_ext );
+        for (int d = 0; d < this->dim_size; d++)
+            z[d] = f * ( diff[d] );
+
+        for (int d = 0; d < this->dim_size; d++)
+            g[d] = -current_lr * z[d]; // minus comes from the objective function, minimization
+
+        for (int d = 0; d < this->dim_size; d++)
+            neule[d] += g[d];
+
+        for (int d = 0; d < this->dim_size; d++)
+            this->emb1[contextIds[i]][d] += g[d] - current_lr*this->lambda*(this->emb1[contextIds[i]][d]);
+    }
+    for (int d = 0; d < this->dim_size; d++)
+        this->emb0[centerId][d] += -neule[d] - current_lr*this->lambda*(this->emb0[centerId][d]);
+
+
+    delete[] neule;
+    delete [] g;
+    delete [] temp_g;
+    delete [] diff;
+    delete [] z;
+    delete [] e_values;
+    /* ------------------------------------------------ */
+
+    /* ---------- Update kernel coefficients ---------- */
+    double kernelSum;
+    double *ker, *totalKer;
+
+    ker = new double[numOfKernels]{0};
+    totalKer = new double[numOfKernels]{0};
+
+    for(int i = 0; i < contextIds.size(); i++) {
+        kernelSum = 0;
+        for (int k = 0; k < numOfKernels/2; k++) {
+            ker[k] = this->gaussian_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            kernelSum += kernelCoefficients[k] * ker[k];
+        }
+        for (int k = numOfKernels/2; k < numOfKernels; k++) {
+            ker[k] = this->schoenberg_kernel(contextIds[i], centerId, this->kernelParams[k + 1]);
+            kernelSum += kernelCoefficients[k] * ker[k];
+        }
+        for (int k = 0; k < numOfKernels; k++)
+            totalKer[k] += 2.0 * ( labels[i] - kernelSum ) * -ker[k];
+    }
+
+    for (int k = 0; k < numOfKernels; k++)
+        kernelCoefficients[k] += -current_lr * totalKer[k] - current_lr * this->beta * kernelCoefficients[k];
+
+    delete[] ker;
+    /* ------------------------------------------------ */
+
+
+}
+
+
+
 void Model::get_schoenberg_grad(double *&g, double label, double alpha, int contextId, int centerId, double current_lr) {
 
     double eta, e, scalar_val;
@@ -714,11 +837,11 @@ void Model::run() {
     auto *kernelCoefficients = new double[numOfKernels]{0};
     double kernelCoeffSum = 0;
     for(int k=0; k<numOfKernels; k++) {
-        kernelCoefficients[k] = 1.0; //abs(real_distr(generator));
-        kernelCoeffSum += kernelCoefficients[k];
+        kernelCoefficients[k] = real_distr(generator);
+        //kernelCoeffSum += kernelCoefficients[k];
     }
     for(int k=0; k<numOfKernels; k++) {
-        kernelCoefficients[k] = kernelCoefficients[k] / kernelCoeffSum;
+        //kernelCoefficients[k] = kernelCoefficients[k] / kernelCoeffSum;
         cout << kernelCoefficients[k] << endl;
     }
 
@@ -809,6 +932,10 @@ void Model::run() {
                             } else if(this->kernel == "multi-sch" || this->kernel == "multiple-sch" || this->kernel == "multiple-schoenberg") {
 
                                 update_schoenberg_multiple_kernel(x, contextIds, centerId, current_alpha, numOfKernels, kernelCoefficients);
+
+                            } else if(this->kernel == "multi-gauss-sch" || this->kernel == "multiple-gauss-sch") {
+
+                                update_gauss_sch_multiple_kernel(x, contextIds, centerId, current_alpha, numOfKernels, kernelCoefficients);
 
                             } else if(this->kernel == "multi-gauss2" || this->kernel == "multiple-gauss2" || this->kernel == "multiple-gaussian2") {
 
